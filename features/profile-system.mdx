@@ -1,0 +1,692 @@
+---
+title: 'User Profile & Authentication'
+description: 'Complete user management system with Supabase authentication, profile customization, and session handling'
+icon: 'user'
+---
+
+## Overview
+
+CUCEIUbicate implements a comprehensive user profile system with secure authentication via Supabase, customizable avatars, academic program integration, and persistent session management using AsyncStorage.
+
+<CardGroup cols={2}>
+  <Card title="Supabase Auth" icon="shield-halved">
+    Production-grade authentication with bcrypt password hashing
+  </Card>
+  <Card title="Session Management" icon="clock-rotate-left">
+    Persistent sessions with AsyncStorage and auto-refresh
+  </Card>
+  <Card title="Avatar System" icon="image">
+    50+ customizable profile avatars with real-time preview
+  </Card>
+  <Card title="Academic Data" icon="graduation-cap">
+    Integration with degree programs and curriculum maps
+  </Card>
+</CardGroup>
+
+## Authentication System
+
+### Login Flow
+
+The login system validates credentials against Supabase and establishes a session:
+
+**Location**: `Src/auth/LoginScreen.js:196`
+
+```javascript Login Handler
+const handleLogin = async () => {
+  console.log('🔍 === INICIANDO PROCESO DE LOGIN ===');
+  setShowError(false);
+  setErrorMessage("");
+
+  // Validate empty fields
+  if (!formData.username || !formData.password) {
+    setErrorMessage("Por favor, completa todos los campos.");
+    setShowError(true);
+    return;
+  }
+
+  // Validate email format
+  if (!validateEmail(formData.username)) {
+    setErrorMessage("Ingresa un correo electrónico válido.");
+    setShowError(true);
+    return;
+  }
+
+  setIsLoading(true);
+  
+  try {
+    // Call Supabase login function
+    const result = await login(formData.username.trim(), formData.password);
+    
+    if (result && result.isMatch === true && result.userData) {
+      console.log("✅ === LOGIN SÚPER EXITOSO ===");
+      console.log("👤 Usuario logueado:", result.userData.username);
+      
+      // Save session
+      await setSession(result.userData);
+      
+      // Show success animation
+      setShowSuccessAnimation(true);
+      setModalVisible(true);
+      
+      setTimeout(() => {
+        setModalVisible(false);
+        setShowSuccessAnimation(false);
+        
+        // Navigate to home
+        navigation.reset({
+          index: 0,
+          routes: [
+            { name: "Principal Home", params: { user: result.userData } },
+          ],
+        });
+      }, 3000);
+    } else {
+      setErrorMessage("Correo o contraseña incorrectos.");
+      setShowError(true);
+    }
+  } catch (error) {
+    console.error("🚨 === ERROR EN HANDLELOGIN ===", error);
+    setErrorMessage("Error al iniciar sesión. Intenta de nuevo.");
+    setShowError(true);
+  } finally {
+    setIsLoading(false);
+  }
+};
+```
+
+### Email Validation
+
+**Location**: `Src/auth/LoginScreen.js:176`
+
+```javascript Email Regex
+const validateEmail = (email) => {
+  const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+  return emailRegex.test(email);
+};
+```
+
+### Password Security
+
+Passwords are hashed using bcrypt before storage:
+
+```javascript Bcrypt Integration
+import bcrypt from 'bcryptjs';
+
+// During registration
+const hashedPassword = await bcrypt.hash(password, 10);
+
+// During login validation
+const isMatch = await bcrypt.compare(password, user.password);
+```
+
+## Session Management
+
+### Session Storage
+
+Sessions persist across app restarts using AsyncStorage:
+
+**Location**: `Src/auth/SessionManager.js:4`
+
+```javascript Session Manager
+export const setSession = async (userData) => { 
+  try {
+    console.log('💾 === GUARDANDO SESIÓN ===');
+    
+    // Validate required fields
+    if (!userData || !userData.email || !userData.username) {
+      throw new Error('Datos de usuario incompletos para guardar sesión');
+    }
+    
+    const sessionData = JSON.stringify(userData);
+    await AsyncStorage.setItem("userSession", sessionData);
+    
+    // Immediate verification
+    const savedData = await AsyncStorage.getItem("userSession");
+    if (savedData) {
+      const parsedData = JSON.parse(savedData);
+      console.log('✅ === VERIFICACIÓN EXITOSA ===');
+      console.log('👤 Usuario verificado:', parsedData.username);
+      console.log('📧 Email verificado:', parsedData.email);
+      return true;
+    }
+  } catch (error) {
+    console.error("🚨 Error guardando sesión:", error);
+    throw error;
+  }
+};
+
+export const getSession = async () => {
+  try {
+    const session = await AsyncStorage.getItem("userSession");
+    
+    if (session) {
+      const userData = JSON.parse(session);
+      console.log('✅ === SESIÓN ENCONTRADA ===');
+      console.log('👤 Usuario:', userData.username);
+      return userData;
+    } else {
+      console.log('❌ No hay sesión guardada');
+      return null;
+    }
+  } catch (error) {
+    console.error("🚨 Error obteniendo sesión:", error);
+    return null;
+  }
+};
+
+export const clearSession = async () => {
+  try {
+    await AsyncStorage.removeItem("userSession");
+    console.log("🗑️ Sesión eliminada exitosamente");
+  } catch (error) {
+    console.error("🚨 Error eliminando sesión:", error);
+  }
+};
+```
+
+### Session Validation
+
+The app checks for valid sessions on each screen focus:
+
+**Location**: `Src/Screens/Home/HomePage.js:179`
+
+```javascript Session Check
+const checkSession = async () => {
+  const session = await getSession();
+  if (!session) {
+    navigation.reset({
+      index: 0,
+      routes: [{ name: "Login" }],
+    });
+  }
+};
+
+useEffect(() => {
+  if (isFocused) {
+    checkSession().then(() => {
+      loadSelectedIcon();
+    });
+  }
+}, [isFocused]);
+```
+
+## Profile Screen
+
+### User Information Display
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:95`
+
+```javascript ProfileScreen Component
+export const ProfileScreen = ({ route }) => {
+  const navigation = useNavigation();
+  const { user } = route.params;
+  const userData = Array.isArray(user) ? user[0] : user;
+
+  const [selectedIcon, setSelectedIcon] = useState(userData.avatar || defaultAvatar);
+  const [isAvatarModalVisible, setAvatarModalVisible] = useState(false);
+  const [isCurriculumModalVisible, setCurriculumModalVisible] = useState(false);
+
+  // Helper function to get student code
+  const getUserCode = (userData) => {
+    return userData?.code || 
+           userData?.user_code || 
+           userData?.codigo || 
+           userData?.int_user_code || 
+           userData?.id || 
+           'Sin código';
+  };
+
+  return (
+    <View style={styles.container}>
+      <ScrollView style={styles.scrollContainer}>
+        {/* Header with gradient */}
+        <LinearGradient 
+          colors={["#1e40af", "#3b82f6", "#60a5fa"]} 
+          style={styles.header}
+        >
+          {/* Avatar section */}
+          <View style={styles.avatarSection}>
+            <View style={styles.avatarContainer}>
+              <Image source={selectedIcon} style={styles.avatar} />
+              <TouchableOpacity
+                style={styles.editAvatarButton}
+                onPress={() => setAvatarModalVisible(true)}
+              >
+                <FontAwesomeIcon icon={faCamera} size={16} color="#FFFFFF" />
+              </TouchableOpacity>
+            </View>
+            
+            <View style={styles.userInfo}>
+              <Text style={styles.userName}>
+                {userData.name} {userData.lastnames}
+              </Text>
+              <Text style={styles.userUsername}>@{userData.username}</Text>
+              
+              <View style={styles.statusBadge}>
+                <FontAwesomeIcon icon={faCheckCircle} size={14} color="#10b981" />
+                <Text style={styles.statusText}>Activo</Text>
+              </View>
+            </View>
+          </View>
+        </LinearGradient>
+
+        {/* User information cards */}
+        <View style={styles.content}>
+          <InfoCard
+            icon={faUser}
+            title="Nombre de Usuario"
+            value={`@${userData.username}`}
+            color="#3b82f6"
+          />
+          <InfoCard
+            icon={faIdCard}
+            title="Código Estudiantil"
+            value={getUserCode(userData)}
+            color="#6366f1"
+          />
+          <InfoCard
+            icon={faGraduationCap}
+            title="Programa Académico"
+            value={degreeNames[userData.degree_code] || userData.degree_code}
+            color="#8b5cf6"
+          />
+          <InfoCard
+            icon={faEnvelope}
+            title="Correo Institucional"
+            value={userData.email}
+            color="#06b6d4"
+          />
+        </View>
+      </ScrollView>
+    </View>
+  );
+};
+```
+
+### Info Card Component
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:83`
+
+```javascript InfoCard
+const InfoCard = ({ icon, title, value, color }) => (
+  <View style={styles.infoCard}>
+    <View style={[styles.infoIcon, { backgroundColor: color }]}>
+      <FontAwesomeIcon icon={icon} size={16} color="#FFFFFF" />
+    </View>
+    <View style={styles.infoContent}>
+      <Text style={styles.infoTitle}>{title}</Text>
+      <Text style={styles.infoValue}>{value}</Text>
+    </View>
+  </View>
+);
+```
+
+## Avatar Customization
+
+### Avatar Selection Modal
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:382`
+
+```javascript Avatar Modal
+<Modal
+  animationType="fade"
+  transparent={true}
+  visible={isAvatarModalVisible}
+  onRequestClose={() => setAvatarModalVisible(false)}
+>
+  <View style={styles.modalOverlay}>
+    <View style={styles.avatarModal}>
+      <View style={styles.modalHeader}>
+        <View style={styles.modalHeaderContent}>
+          <View style={styles.modalIconContainer}>
+            <FontAwesomeIcon icon={faCamera} size={24} color="#1e40af" />
+          </View>
+          <View style={styles.modalHeaderText}>
+            <Text style={styles.modalTitle}>Selecciona tu Avatar</Text>
+            <Text style={styles.modalSubtitle}>
+              Elige tu imagen de perfil favorita
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.modalCloseButton}
+          onPress={() => setAvatarModalVisible(false)}
+        >
+          <FontAwesomeIcon icon={faTimes} size={20} color="#6b7280" />
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.modalContent}>
+        <FlatList
+          data={animalIcons}
+          renderItem={renderIcon}
+          keyExtractor={(item) => item.id}
+          numColumns={4}
+          contentContainerStyle={styles.iconGrid}
+          showsVerticalScrollIndicator={false}
+        />
+      </View>
+    </View>
+  </View>
+</Modal>
+```
+
+### Avatar Storage
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:152`
+
+```javascript Avatar Persistence
+const loadSelectedIcon = async () => {
+  try {
+    const savedIcon = await AsyncStorage.getItem("selectedIcon");
+    if (savedIcon) setSelectedIcon(JSON.parse(savedIcon));
+  } catch (error) {
+    console.error("Error loading selected icon:", error);
+  }
+};
+
+const saveSelectedIcon = async (icon) => {
+  try {
+    await AsyncStorage.setItem("selectedIcon", JSON.stringify(icon));
+  } catch (error) {
+    console.error("Error saving selected icon:", error);
+  }
+};
+
+const handleAvatarChange = (newAvatar) => {
+  setSelectedIcon(newAvatar);
+  saveSelectedIcon(newAvatar);
+  setAvatarModalVisible(false);
+};
+```
+
+### Icon Rendering
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:194`
+
+```javascript Icon Grid Item
+const renderIcon = ({ item }) => {
+  return (
+    <TouchableOpacity
+      onPress={() => handleAvatarChange(item.uri)}
+      style={[
+        styles.iconButton,
+        selectedIcon === item.uri && styles.selectedIconButton,
+      ]}
+    >
+      <View style={styles.iconImageContainer}>
+        <Image
+          source={item.uri}
+          style={[
+            styles.iconImage,
+            selectedIcon === item.uri && styles.selectedIconImage,
+          ]}
+        />
+        {selectedIcon === item.uri && (
+          <View style={styles.selectedBadge}>
+            <FontAwesomeIcon icon={faCheckCircle} size={14} color="#10b981" />
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+```
+
+## Academic Integration
+
+### Degree Programs
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:61`
+
+```javascript Degree Names Mapping
+const degreeNames = {
+  ICIV: "Ingeniería Civil",
+  IGFO: "Ingeniería en Fotónica",
+  INBI: "Ingeniería Biomédica",
+  INCE: "Ingeniería en Comunicaciones y Electrónica",
+  INCO: "Ingeniería en Computación",
+  INDU: "Ingeniería Industrial",
+  INFO: "Ingeniería en Informática",
+  INME: "Ingeniería Mecánica Eléctrica",
+  INQU: "Ingeniería Química",
+  INRO: "Ingeniería en Robótica",
+  ITOG: "Ingeniería en Topografía Geomática",
+  LCMA: "Licenciatura en Ciencia de Materiales",
+  "LIAB/LINA": "Ingeniería en Alimentos y Biotecnología",
+  LIFI: "Licenciatura en Física",
+  LIMA: "Licenciatura en Matemáticas",
+  LOGT: "Ingeniería en Logística y Transporte",
+  LQFB: "Licenciatura en Químico Farmacéutico Biólogo",
+  LQUI: "Licenciatura en Química",
+};
+```
+
+### Curriculum Map Viewer
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:435`
+
+```javascript Curriculum Modal
+<Modal
+  animationType="fade"
+  transparent={true}
+  visible={isCurriculumModalVisible}
+  onRequestClose={() => setCurriculumModalVisible(false)}
+>
+  <View style={styles.curriculumModalOverlay}>
+    <View style={styles.curriculumModalContent}>
+      <LinearGradient
+        colors={['#1e40af', '#3b82f6']}
+        style={styles.curriculumModalHeader}
+      >
+        <View style={styles.curriculumModalHeaderLeft}>
+          <View style={styles.curriculumHeaderIconContainer}>
+            <FontAwesomeIcon icon={faBookOpen} size={22} color="#FFFFFF" />
+          </View>
+          <View style={styles.curriculumHeaderTextContainer}>
+            <Text style={styles.curriculumModalTitle}>Malla Curricular</Text>
+            <Text style={styles.curriculumModalSubtitle}>
+              {degreeNames[extractCareerCode(userData.degree_code)] || userData.degree_code}
+            </Text>
+          </View>
+        </View>
+        <TouchableOpacity
+          style={styles.curriculumModalCloseButton}
+          onPress={() => setCurriculumModalVisible(false)}
+        >
+          <FontAwesomeIcon icon={faTimes} size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <View style={styles.curriculumImageContainer}>
+        {careerImages[careerCode] ? (
+          <ImageZoom
+            cropWidth={SCREEN_WIDTH * 0.95}
+            cropHeight={SCREEN_HEIGHT * 0.75}
+            imageWidth={SCREEN_WIDTH * 0.95}
+            imageHeight={SCREEN_HEIGHT * 0.75}
+            enableSwipeDown={true}
+            onSwipeDown={() => setCurriculumModalVisible(false)}
+            minScale={0.5}
+            maxScale={4}
+          >
+            <Image
+              source={careerImages[careerCode]}
+              style={styles.curriculumImage}
+              resizeMode="contain"
+            />
+          </ImageZoom>
+        ) : (
+          <View style={styles.noImageContainer}>
+            <Text style={styles.noImageTitle}>
+              Malla curricular no disponible
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  </View>
+</Modal>
+```
+
+## Logout Functionality
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:175`
+
+```javascript Logout Handler
+const handleLogout = () => {
+  Alert.alert(
+    "Cerrar Sesión",
+    "¿Estás seguro de que quieres cerrar sesión?",
+    [
+      { text: "Cancelar", style: "cancel" },
+      { text: "Sí, cerrar sesión", onPress: confirmLogout },
+    ]
+  );
+};
+
+const confirmLogout = () => {
+  clearSession();
+  navigation.reset({
+    index: 0,
+    routes: [{ name: "Login" }],
+  });
+};
+```
+
+## University Information Card
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:254`
+
+```javascript University Card
+<View style={styles.universityCard}>
+  <View style={styles.universityHeader}>
+    <View style={styles.universityLogoContainer}>
+      <FontAwesomeIcon icon={faGraduationCap} size={24} color="#FFFFFF" />
+    </View>
+    <View style={styles.universityInfo}>
+      <Text style={styles.universityName}>Universidad de Guadalajara</Text>
+      <Text style={styles.centerName}>
+        Centro Universitario de Ciencias Exactas e Ingenierías
+      </Text>
+    </View>
+  </View>
+  
+  <View style={styles.universityStats}>
+    <View style={styles.universityStatItem}>
+      <View style={styles.statIconContainer}>
+        <FontAwesomeIcon icon={faBuilding} size={16} color="#1e40af" />
+      </View>
+      <View style={styles.statInfoContainer}>
+        <Text style={styles.statValueNew}>CUCEI</Text>
+        <Text style={styles.statLabelNew}>Centro Universitario</Text>
+      </View>
+    </View>
+    
+    <View style={styles.universityStatItem}>
+      <View style={styles.statIconContainer}>
+        <FontAwesomeIcon icon={faUniversity} size={16} color="#1e40af" />
+      </View>
+      <View style={styles.statInfoContainer}>
+        <Text style={styles.statValueNew}>UDG</Text>
+        <Text style={styles.statLabelNew}>Universidad</Text>
+      </View>
+    </View>
+    
+    <View style={styles.universityStatItem}>
+      <View style={styles.statIconContainer}>
+        <FontAwesomeIcon icon={faCalendarAlt} size={16} color="#1e40af" />
+      </View>
+      <View style={styles.statInfoContainer}>
+        <Text style={styles.statValueNew}>2025</Text>
+        <Text style={styles.statLabelNew}>Ciclo Escolar</Text>
+      </View>
+    </View>
+  </View>
+</View>
+```
+
+## Responsive Design
+
+### Platform-Specific Styles
+
+**Location**: `Src/Screens/Profile/ProfileScreen.js:46`
+
+```javascript Shadow Helper
+const getShadowStyle = (elevation) => {
+  if (Platform.OS === 'android') {
+    return {
+      elevation: Math.min(elevation, 8), // Max elevation on Android
+    };
+  }
+  return {
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: elevation / 2 },
+    shadowOpacity: 0.1 + (elevation * 0.02),
+    shadowRadius: elevation,
+  };
+};
+```
+
+### Tablet Support
+
+```javascript Responsive Sizing
+const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get("window");
+const isTablet = SCREEN_WIDTH >= 768;
+
+// Usage in styles
+const styles = StyleSheet.create({
+  avatar: {
+    width: isTablet ? 120 : 100,
+    height: isTablet ? 120 : 100,
+    borderRadius: isTablet ? 60 : 50,
+  },
+  title: {
+    fontSize: isTablet ? 24 : 20,
+  },
+});
+```
+
+## Data Security
+
+<CardGroup cols={2}>
+  <Card title="Password Hashing" icon="lock">
+    Bcrypt with salt rounds for secure password storage
+  </Card>
+  <Card title="Session Encryption" icon="key">
+    AsyncStorage data is device-encrypted by default
+  </Card>
+  <Card title="No Plain Text" icon="shield-check">
+    Passwords never stored or transmitted in plain text
+  </Card>
+  <Card title="Auto Logout" icon="right-from-bracket">
+    Sessions expire and redirect to login when invalid
+  </Card>
+</CardGroup>
+
+## User Data Model
+
+```typescript User Interface
+interface User {
+  id: string;
+  username: string;
+  name: string;
+  lastnames: string;
+  email: string;
+  code: string;              // Student code
+  degree_code: string;       // Academic program code
+  avatar?: string;           // Avatar image URI
+  created_at: string;        // ISO timestamp
+}
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Interactive Map" icon="map" href="/features/interactive-map">
+    Explore campus navigation features
+  </Card>
+  <Card title="AI Chatbot" icon="robot" href="/features/ai-chatbot">
+    Learn about the conversational assistant
+  </Card>
+</CardGroup>

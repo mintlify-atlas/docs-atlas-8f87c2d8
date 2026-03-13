@@ -1,0 +1,330 @@
+---
+title: Route Finding
+description: Find routes between campus locations with step-by-step directions
+icon: 'route'
+---
+
+# Route Finding
+
+CUCEIUbicate includes a powerful route-finding feature that helps you navigate from one campus location to another. Get clear directions, view your path on the map, and save frequently used routes.
+
+## Opening the Route Finder
+
+There are several ways to access the route-finding interface:
+
+<Tabs>
+  <Tab title="From Home Screen">
+    Look for the **route** or **directions** icon in the top navigation bar or floating action button on the home screen.
+  </Tab>
+  
+  <Tab title="From Map">
+    While viewing the map, tap the **search** or **route** button that appears on the screen.
+  </Tab>
+  
+  <Tab title="From Location Details">
+    When viewing a location's details in the bottom sheet, look for a "Get Directions" option.
+  </Tab>
+</Tabs>
+
+## Finding a Route
+
+<Steps>
+  <Step title="Open Search Route Interface">
+    Tap the route-finding button to open the **Buscar Ruta** (Search Route) modal. This slides up from the bottom with an animated entrance.
+    
+    <Note>
+      The interface features a clean blue header with "Buscar Ruta" title and a close button (X).
+    </Note>
+  </Step>
+  
+  <Step title="Enter Origin Location">
+    In the **Origen** (Origin) field marked with an upward arrow icon:
+    
+    - Tap to activate the input
+    - Start typing the name of your starting location
+    - As you type, suggestions will appear below the field
+    - Tap any suggestion to auto-complete
+    
+    <Note>
+      The search is smart and matches building names, IDs, and even aliases (alternative names for locations).
+    </Note>
+  </Step>
+  
+  <Step title="Enter Destination Location">
+    In the **Destino** (Destination) field marked with a map marker icon:
+    
+    - Tap to activate the input
+    - Type your destination location
+    - Select from the auto-complete suggestions
+    
+    <Warning>
+      Both origin and destination must be valid campus locations. If you enter an invalid location, you'll see an error: "El origen o destino no existen en el mapa."
+    </Warning>
+  </Step>
+  
+  <Step title="Swap Locations (Optional)">
+    Need to reverse your route? Tap the **exchange icon** (⇄) button between the two input fields to instantly swap the origin and destination.
+    
+    This is useful when you want to find the return route without retyping.
+  </Step>
+  
+  <Step title="Search for Route">
+    Once both fields are filled, tap the blue **Buscar** (Search) button with the search icon.
+    
+    The app will:
+    - Validate both locations exist
+    - Calculate the optimal route
+    - Display the path on the map
+    - Show step-by-step directions
+  </Step>
+</Steps>
+
+## Using Route Suggestions
+
+As you type in either field, the app provides intelligent suggestions:
+
+### How Suggestions Work
+
+- **Prefix Matching**: Suggestions appear for locations starting with your typed text
+- **ID Matching**: Works with location IDs and codes
+- **Alias Matching**: Finds locations by alternative names
+- **Case Insensitive**: Typing is not case-sensitive
+
+### Selecting a Suggestion
+
+<Steps>
+  <Step title="View Suggestions">
+    A dropdown list appears below the active input field showing matching locations.
+  </Step>
+  
+  <Step title="Tap to Select">
+    Tap any suggestion from the list to auto-fill that field with the exact location name.
+  </Step>
+  
+  <Step title="Suggestions Disappear">
+    Once selected, the suggestion list automatically closes so you can move to the next field.
+  </Step>
+</Steps>
+
+## Understanding Route Results
+
+After searching for a route, the app displays:
+
+### Map Visualization
+
+- **Highlighted Path**: Your route is drawn on the map with a visible line or markers
+- **Origin Marker**: Shows where you're starting from
+- **Destination Marker**: Shows where you're going
+- **Auto-Zoom**: The map automatically zooms and centers to show the entire route
+
+### Route Information
+
+<Note>
+  Route details may include distance, estimated walking time, and key waypoints along the path.
+</Note>
+
+- Visual walkthrough of the path
+- Major landmarks or turns along the way
+- Clear indication of building connections and walkways
+
+## Search History
+
+The route finder maintains a history of your recent searches for quick access:
+
+### Viewing History
+
+<Steps>
+  <Step title="Locate History Section">
+    Below the search fields, you'll see **Historial de Búsqueda** (Search History).
+  </Step>
+  
+  <Step title="Browse Previous Routes">
+    Scroll through the list showing your recent route searches in the format:
+    
+    **Origin - Destination**
+    
+    For example: "Módulo A - Biblioteca"
+  </Step>
+  
+  <Step title="Reuse a Previous Search">
+    Tap any history item to instantly populate both the origin and destination fields with that route.
+    
+    Then tap **Buscar** to search again.
+  </Step>
+</Steps>
+
+### Managing History
+
+<Tabs>
+  <Tab title="Delete Single Item">
+    To remove one history entry:
+    
+    1. Find the entry in the history list
+    2. Tap the red **X** icon on the right side
+    3. That entry will be immediately removed
+  </Tab>
+  
+  <Tab title="Clear All History">
+    To delete all history at once:
+    
+    1. Scroll to the bottom of the history list
+    2. Tap the red **Limpiar Historial** (Clear History) button
+    3. All search history will be erased
+    
+    <Warning>
+      Clearing history is permanent and cannot be undone. Make sure you want to delete all saved routes.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Route-Finding Tips
+
+### Getting Accurate Results
+
+<Note>
+  For best results, use the auto-complete suggestions instead of typing full names manually.
+</Note>
+
+- **Start typing and wait** for suggestions to appear
+- **Use building codes** when you know them (e.g., "A", "B", "E")
+- **Search facility types** like "Biblioteca" or "Comida"
+- **Be specific** - "Módulo A" is clearer than just "A"
+
+### Common Routes to Save
+
+<Accordion title="From Main Entrance to Your Classes">
+  Save routes from each campus entrance to your most frequent classroom buildings:
+  
+  - Entrada Boulevard → Your Module
+  - Entrada Olímpica → Your Module
+  - Entrada Revolución → Your Module
+</Accordion>
+
+<Accordion title="Between Classes">
+  If you have back-to-back classes in different buildings, save those routes:
+  
+  - Módulo A → Módulo E
+  - Módulo C → Biblioteca
+  - Jobs → Módulo D
+</Accordion>
+
+<Accordion title="To Common Facilities">
+  Keep these frequently-used routes handy:
+  
+  - Any Module → Biblioteca
+  - Any Module → Cafeteria/Comida areas
+  - Any Module → Auditorio Matute
+</Accordion>
+
+### Using Routes Efficiently
+
+<Steps>
+  <Step title="Preview Before Walking">
+    Always review the route on the map before starting to walk. This helps you:
+    
+    - Identify the general direction
+    - Spot any major landmarks
+    - Understand the path layout
+  </Step>
+  
+  <Step title="Note Key Waypoints">
+    Look for distinctive features along your route:
+    
+    - Building connections
+    - Courtyards or plazas
+    - Entrance points
+    - Outdoor vs. indoor sections
+  </Step>
+  
+  <Step title="Save Frequently Used Routes">
+    Routes you use often will appear in your history. Keep them saved by:
+    
+    - Not clearing your history unnecessarily
+    - Re-searching them periodically to keep them at the top
+    - Making a mental note of your top 5 routes
+  </Step>
+</Steps>
+
+## Advanced Route Features
+
+### Multiple Floor Transitions
+
+When your route involves going between floors:
+
+<Note>
+  The app shows floor transitions and suggests stairs or elevators when available.
+</Note>
+
+- Look for floor indicators in the route details
+- Check building floor plans for stairway locations
+- Plan for extra time when changing floors
+
+### Alternative Routes
+
+<Warning>
+  Currently, the app shows the primary optimal route. Future versions may include alternative path options.
+</Warning>
+
+If you want to explore different ways to reach your destination:
+
+- Try intermediate waypoints
+- Manually navigate using the map
+- Ask the chatbot for suggestions
+
+## Troubleshooting Route Finding
+
+<Accordion title="No Route Found">
+  If the app can't find a route between two locations:
+  
+  - Verify both locations are correctly spelled
+  - Check that both exist on the campus map
+  - Try using auto-complete suggestions
+  - Make sure you haven't entered the same location twice
+</Accordion>
+
+<Accordion title="Route Seems Indirect">
+  If your route looks longer than expected:
+  
+  - The app calculates walkable paths and may avoid obstacles
+  - Check if there are building connections you're not aware of
+  - Some routes must follow specific walkways for accessibility
+  - Try searching the reverse route to compare
+</Accordion>
+
+<Accordion title="Suggestions Not Appearing">
+  If auto-complete doesn't show suggestions:
+  
+  - Make sure you've typed at least 1-2 characters
+  - Check your typing for typos
+  - Try using building codes or simpler terms
+  - Ensure the location exists on campus
+</Accordion>
+
+<Accordion title="History Not Saving">
+  If your search history isn't being saved:
+  
+  - Check app permissions for storage
+  - Ensure you completed the search (not just typed)
+  - Try restarting the app
+  - Verify you haven't disabled history in settings (if available)
+</Accordion>
+
+## Accessibility Features
+
+<Note>
+  CUCEIUbicate strives to provide accessible route options for all users.
+</Note>
+
+- Routes consider accessible pathways where possible
+- Look for accessibility indicators on the map
+- Check building entrances for accessibility information
+- Contact campus services for specific accessibility needs
+
+## Next Steps
+
+Now that you know how to find routes:
+
+- [Explore the campus map](/guide/campus-navigation) to familiarize yourself with locations
+- [Ask the chatbot](/guide/chatbot-assistant) for tips about getting to specific places
+- Save your most common routes in the search history
+- Practice navigating between buildings before your first day

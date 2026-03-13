@@ -1,0 +1,432 @@
+---
+title: 'Installation'
+description: 'Complete guide to installing and running CUCEIUbicate on your development machine'
+icon: 'download'
+---
+
+This guide will walk you through setting up the CUCEIUbicate development environment and running the app on your local machine or mobile device.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed on your system:
+
+<CardGroup cols={2}>
+  <Card title="Node.js" icon="node-js" color="#68a063">
+    Version 18.x or higher
+  </Card>
+  <Card title="npm or Yarn" icon="box" color="#cb3837">
+    Package manager (npm comes with Node.js)
+  </Card>
+  <Card title="Git" icon="git-alt" color="#f05032">
+    For cloning the repository
+  </Card>
+  <Card title="Expo CLI" icon="mobile" color="#000020">
+    For running React Native apps
+  </Card>
+</CardGroup>
+
+<Tabs>
+  <Tab title="macOS">
+    ```bash
+    # Install Homebrew (if not already installed)
+    /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
+    
+    # Install Node.js
+    brew install node
+    
+    # Install Watchman (recommended for React Native)
+    brew install watchman
+    
+    # Install Expo CLI globally
+    npm install -g expo-cli
+    ```
+  </Tab>
+  <Tab title="Windows">
+    ```bash
+    # Install Node.js from nodejs.org
+    # Download and run the installer from https://nodejs.org/
+    
+    # Install Expo CLI globally (in PowerShell or CMD)
+    npm install -g expo-cli
+    
+    # Install Git from git-scm.com
+    # Download and run the installer from https://git-scm.com/
+    ```
+  </Tab>
+  <Tab title="Linux">
+    ```bash
+    # Install Node.js (Ubuntu/Debian)
+    curl -fsSL https://deb.nodesource.com/setup_18.x | sudo -E bash -
+    sudo apt-get install -y nodejs
+    
+    # Install Expo CLI globally
+    npm install -g expo-cli
+    
+    # Install Git
+    sudo apt-get install git
+    ```
+  </Tab>
+</Tabs>
+
+## Development Setup
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the CUCEIUbicate repository to your local machine:
+    
+    ```bash
+    git clone https://github.com/your-org/CUCEIUbicate.git
+    cd CUCEIUbicate
+    ```
+  </Step>
+  
+  <Step title="Install Dependencies">
+    Install all required npm packages:
+    
+    ```bash
+    npm install
+    ```
+    
+    This will install all dependencies listed in `package.json`, including:
+    
+    <Accordion title="View Key Dependencies">
+    ```json package.json (excerpt)
+    {
+      "dependencies": {
+        "@react-navigation/native": "^6.1.9",
+        "@react-navigation/native-stack": "^6.9.17",
+        "@react-navigation/drawer": "^6.6.6",
+        "@react-navigation/bottom-tabs": "^6.5.11",
+        "@supabase/supabase-js": "^2.39.8",
+        "@google/generative-ai": "^0.21.0",
+        "expo": "^52.0.48",
+        "react": "^18.3.1",
+        "react-native": "0.76.9",
+        "react-native-reanimated": "~3.16.1",
+        "react-native-svg": "15.8.0",
+        "lottie-react-native": "7.1.0"
+      }
+    }
+    ```
+    </Accordion>
+  </Step>
+  
+  <Step title="Configure Environment">
+    Create your environment configuration file:
+    
+    ```bash
+    # Copy the example environment file
+    cp .env.example .env
+    ```
+    
+    <Warning>
+    You'll need to configure API keys for Supabase and Stack AI. Contact the project maintainers for access credentials.
+    </Warning>
+  </Step>
+  
+  <Step title="Start Development Server">
+    Launch the Expo development server:
+    
+    ```bash
+    npm start
+    ```
+    
+    Or use specific platforms:
+    
+    ```bash
+    # For Android
+    npm run android
+    
+    # For iOS (macOS only)
+    npm run ios
+    
+    # For web
+    npm run web
+    ```
+  </Step>
+</Steps>
+
+## Running on Physical Devices
+
+### Using Expo Go (Recommended for Testing)
+
+<Steps>
+  <Step title="Install Expo Go">
+    Download and install Expo Go on your mobile device:
+    
+    - **Android**: [Google Play Store](https://play.google.com/store/apps/details?id=host.exp.exponent)
+    - **iOS**: [Apple App Store](https://apps.apple.com/app/expo-go/id982107779)
+  </Step>
+  
+  <Step title="Start Development Server">
+    Run the development server on your computer:
+    
+    ```bash
+    npm start
+    ```
+    
+    This will open Expo Dev Tools in your browser and display a QR code.
+  </Step>
+  
+  <Step title="Scan QR Code">
+    - **Android**: Open Expo Go and tap "Scan QR Code"
+    - **iOS**: Open the Camera app and scan the QR code
+    
+    <Note>
+    Make sure your phone and computer are on the same Wi-Fi network.
+    </Note>
+  </Step>
+</Steps>
+
+### Building for Production
+
+For production builds, use EAS (Expo Application Services):
+
+<Tabs>
+  <Tab title="Android APK">
+    ```bash
+    # Install EAS CLI
+    npm install -g eas-cli
+    
+    # Login to Expo account
+    eas login
+    
+    # Configure build
+    eas build:configure
+    
+    # Build Android APK
+    eas build --platform android --profile preview
+    ```
+    
+    The build configuration is stored in `eas.json`:
+    
+    ```json eas.json
+    {
+      "build": {
+        "preview": {
+          "android": {
+            "buildType": "apk"
+          }
+        },
+        "production": {
+          "android": {
+            "buildType": "app-bundle"
+          }
+        }
+      }
+    }
+    ```
+  </Tab>
+  
+  <Tab title="iOS Build">
+    ```bash
+    # Build for iOS (requires Apple Developer account)
+    eas build --platform ios --profile production
+    ```
+    
+    <Warning>
+    iOS builds require an active Apple Developer Program membership ($99/year).
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Configuration
+
+### App Configuration
+
+The main app configuration is in `app.json`:
+
+```json app.json
+{
+  "expo": {
+    "name": "CUCEIUbicate",
+    "slug": "CUCEIUbicate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/cucei.png",
+    "userInterfaceStyle": "light",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "android": {
+      "package": "com.cuceiubicate.cuceiubicate",
+      "versionCode": 1,
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icono.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "ios": {
+      "bundleIdentifier": "yairhdz24",
+      "supportsTablet": true
+    }
+  }
+}
+```
+
+### Platform-Specific Setup
+
+<Accordion title="Android Setup">
+**Minimum Requirements:**
+- Android 7.0 (API level 24) or higher
+- 2GB RAM minimum, 4GB recommended
+- 500MB free storage
+
+**Permissions Required:**
+- Storage access (for saving images and documents)
+- Network access (for API calls)
+
+The app automatically requests these permissions at runtime.
+</Accordion>
+
+<Accordion title="iOS Setup">
+**Minimum Requirements:**
+- iOS 13.0 or higher
+- 2GB RAM minimum
+- 500MB free storage
+
+**Info.plist Permissions:**
+```xml
+<key>NSPhotoLibraryAddUsageDescription</key>
+<string>Esta aplicación necesita acceso a la biblioteca de fotos para guardar imágenes.</string>
+```
+</Accordion>
+
+## Available Scripts
+
+All available scripts are defined in `package.json`:
+
+```json package.json (scripts section)
+{
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  }
+}
+```
+
+| Script | Description |
+|--------|-------------|
+| `npm start` | Starts the Expo development server |
+| `npm run android` | Opens the app in Android emulator or connected device |
+| `npm run ios` | Opens the app in iOS simulator (macOS only) |
+| `npm run web` | Opens the app in web browser |
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Module not found errors">
+    Clear the cache and reinstall dependencies:
+    
+    ```bash
+    # Clear npm cache
+    npm cache clean --force
+    
+    # Remove node_modules and package-lock
+    rm -rf node_modules package-lock.json
+    
+    # Reinstall dependencies
+    npm install
+    
+    # Clear Expo cache
+    expo start -c
+    ```
+  </Accordion>
+  
+  <Accordion title="Build errors on Android">
+    Clean the Android build:
+    
+    ```bash
+    cd android
+    ./gradlew clean
+    cd ..
+    npm run android
+    ```
+  </Accordion>
+  
+  <Accordion title="Metro bundler issues">
+    Reset Metro bundler:
+    
+    ```bash
+    npx react-native start --reset-cache
+    ```
+  </Accordion>
+  
+  <Accordion title="Expo Go connection issues">
+    - Ensure phone and computer are on the same network
+    - Disable any VPN or firewall
+    - Try connecting via tunnel mode: `expo start --tunnel`
+  </Accordion>
+</AccordionGroup>
+
+### Debug Mode
+
+Enable debug mode for detailed logging:
+
+```javascript App.js
+// Enable console logs
+LogBox.ignoreLogs(['Setting a timer']);
+
+// View Redux state
+console.log('Current state:', store.getState());
+
+// Debug navigation
+console.log('Current route:', navigationRef.getCurrentRoute());
+```
+
+## Development Tools
+
+### Recommended VS Code Extensions
+
+```json .vscode/extensions.json (recommended)
+{
+  "recommendations": [
+    "dbaeumer.vscode-eslint",
+    "esbenp.prettier-vscode",
+    "msjsdiag.vscode-react-native",
+    "orta.vscode-react-native-storybooks",
+    "ms-vscode.vscode-typescript-next"
+  ]
+}
+```
+
+### Hot Reload
+
+The app supports hot reload during development. Changes to JavaScript files will automatically reload without losing state.
+
+<Note>
+For changes to native modules or configuration files, you'll need to rebuild the app completely.
+</Note>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Explore Features" icon="compass" href="/features">
+    Learn about all available features and capabilities
+  </Card>
+  <Card title="API Reference" icon="code" href="/api/overview">
+    Dive into the API documentation
+  </Card>
+  <Card title="Contributing" icon="users" href="/development/contributing">
+    Learn how to contribute to the project
+  </Card>
+  <Card title="Development Guide" icon="book" href="/development">
+    Advanced development topics and best practices
+  </Card>
+</CardGroup>
+
+---
+
+<Note>
+For additional support or questions, please check the project repository issues or contact the development team.
+</Note>

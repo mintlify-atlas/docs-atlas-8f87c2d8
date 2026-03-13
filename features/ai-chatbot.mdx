@@ -1,0 +1,711 @@
+---
+title: 'AI Chatbot Assistant'
+description: 'Stack AI-powered conversational interface with real-time streaming and context awareness'
+icon: 'robot'
+---
+
+## Overview
+
+CUCEIUbicate features an intelligent chatbot powered by Stack AI that helps students navigate campus, get information about buildings, events, and services through natural conversation. The chatbot includes message persistence, typing indicators, and automatic conversation management.
+
+<CardGroup cols={2}>
+  <Card title="Stack AI Integration" icon="brain">
+    Production-ready AI with custom CUCEI knowledge base
+  </Card>
+  <Card title="Message Persistence" icon="floppy-disk">
+    AsyncStorage-backed chat history across sessions
+  </Card>
+  <Card title="Smart Greetings" icon="hand-wave">
+    Local greeting detection for instant responses
+  </Card>
+  <Card title="Auto-Cleanup" icon="broom">
+    Inactivity timer clears old conversations
+  </Card>
+</CardGroup>
+
+## Stack AI Configuration
+
+### API Integration
+
+The chatbot connects to a dedicated Stack AI inference endpoint:
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:30`
+
+```javascript API Setup
+const API_URL =
+  "https://api.stack-ai.com/inference/v0/run/1640c9fb-aa6e-42d3-aa7b-589fb81ea0a0/679133f2b623c3637afc299f";
+
+const HEADERS = {
+  Authorization: "Bearer ae8b0a56-1901-4909-8994-1def1cadc51b",
+  "Content-Type": "application/json",
+};
+```
+
+### Query Function
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:143`
+
+```javascript API Request
+async function query(user_input) {
+  const payload = {
+    user_id: "1234",
+    "in-0": user_input,
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: HEADERS,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error al comunicarse con la API");
+    }
+
+    const responseData = await response.json();
+    const rawResponse =
+      responseData.outputs?.["out-0"] ||
+      "No se recibió una respuesta válida en el campo 'out-0'.";
+
+    // Limit response to 5000 characters
+    return rawResponse.slice(0, 5000);
+  } catch (e) {
+    return `Error al comunicarse con la API: ${e.message}`;
+  }
+}
+```
+
+<Note>
+The Stack AI endpoint is configured with a custom knowledge base about CUCEI campus, including:
+- Building locations and departments
+- Campus services and hours
+- Event information
+- Academic programs
+- Common student queries
+</Note>
+
+## Response Processing
+
+The chatbot cleans up AI responses to remove metadata:
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:174`
+
+```javascript Response Cleaning
+function processResponse(response) {
+  // Remove citation markers
+  response = response.replace(/\[\^.*?\]/g, "");
+  // Remove citation blocks
+  response = response.replace(/<citations>.*?<\/citations>/gs, "");
+  // Collapse multiple newlines
+  response = response.replace(/\n\s*\n/g, "\n");
+  return response.trim();
+}
+```
+
+## Greeting Detection System
+
+### Local Greeting Handler
+
+Common greetings are handled locally for instant responses:
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:184`
+
+```javascript Greeting Detection
+const isGreeting = (message) => {
+  const greetings = [
+    "hola",
+    "hello",
+    "hi",
+    "hey",
+    "buenos días",
+    "buenas tardes",
+    "buenas noches",
+  ];
+  return greetings.some((greeting) => 
+    message.toLowerCase().includes(greeting)
+  );
+};
+
+const getGreetingResponse = () => {
+  const responses = [
+    "¡Hola! ¿Cómo estás? ¿En qué puedo ayudarte hoy?",
+    "¡Bienvenido! ¿Qué puedo hacer por ti?",
+    "¡Hola! Estoy aquí para ayudarte. ¿Qué necesitas?",
+    "¡Saludos! ¿Tienes alguna pregunta sobre CUCEI?",
+    "¡Hola! ¿En qué puedo asistirte hoy?",
+  ];
+  return responses[Math.floor(Math.random() * responses.length)];
+};
+```
+
+## Message Architecture
+
+### Message Data Structure
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:268`
+
+```javascript Message Format
+const welcomeMessage = {
+  _id: Date.now().toString(),
+  text: "¡Hola! Soy el bot asistente de CUCEI. Estoy aquí para ayudarte con cualquier duda que tengas sobre el campus, horarios, eventos y más. ¿En qué puedo asistirte hoy?",
+  createdAt: new Date().toISOString(),
+  user: {
+    _id: 2,
+    name: "Chatbot",
+    avatar: require("../ChatBot/images/bot.png"),
+  },
+};
+```
+
+### Message Persistence
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:262`
+
+```javascript AsyncStorage Integration
+const loadMessages = async () => {
+  try {
+    const savedMessages = await AsyncStorage.getItem("chatMessages");
+    if (savedMessages) {
+      setMessages(JSON.parse(savedMessages));
+    } else {
+      // Initialize with welcome message
+      const welcomeMessage = { /* ... */ };
+      setMessages([welcomeMessage]);
+      saveMessages([welcomeMessage]);
+    }
+  } catch (error) {
+    console.error('Error loading messages:', error);
+  }
+};
+
+const saveMessages = async (messagesToSave) => {
+  try {
+    await AsyncStorage.setItem(
+      "chatMessages",
+      JSON.stringify(messagesToSave)
+    );
+  } catch (error) {
+    console.error('Error saving messages:', error);
+  }
+};
+```
+
+## Message Sending Flow
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:304`
+
+```javascript Send Message Logic
+const onSend = useCallback(async () => {
+  if (inputMessage.trim() === "") return;
+
+  // Create user message
+  const newMessage = {
+    _id: `${Date.now()}-${Math.random()}`,
+    text: inputMessage,
+    createdAt: new Date().toISOString(),
+    user: { _id: 1, name: "Usuario" },
+  };
+
+  setMessages((prevMessages) => [newMessage, ...prevMessages]);
+  setInputMessage("");
+  setIsTyping(true);
+
+  try {
+    if (isGreeting(inputMessage)) {
+      // Fast local response for greetings
+      addBotMessage(getGreetingResponse());
+    } else {
+      // Query Stack AI for other messages
+      const responseFromAPI = await query(inputMessage);
+      const processedResponse = processResponse(responseFromAPI);
+      addBotMessage(processedResponse);
+    }
+  } catch (error) {
+    addBotMessage(
+      "Lo siento, ha ocurrido un error. Por favor, intenta de nuevo más tarde."
+    );
+  } finally {
+    setIsTyping(false);
+  }
+}, [inputMessage]);
+```
+
+## Typing Animation
+
+Custom typing indicator with wave effect:
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:52`
+
+```javascript Typing Animation
+const TypingAnimation = () => {
+  const [animation] = useState(new Animated.Value(0));
+  const [waveAnim] = useState(new Animated.Value(0));
+
+  useEffect(() => {
+    // Dot animation
+    Animated.loop(
+      Animated.timing(animation, {
+        toValue: 1,
+        duration: 1200,
+        useNativeDriver: true,
+      })
+    ).start();
+
+    // Wave animation
+    Animated.loop(
+      Animated.timing(waveAnim, {
+        toValue: 1,
+        duration: 2000,
+        useNativeDriver: true,
+      })
+    ).start();
+  }, []);
+
+  return (
+    <View style={styles.typingContainer}>
+      <View style={styles.typingWrapper}>
+        <LinearGradient
+          colors={["#1E3A8A", "#3B82F6", "#60A5FA"]}
+          style={styles.typingBubble}
+        >
+          <View style={styles.typingContentLeft}>
+            {/* Bot avatar with rotating ring */}
+            <View style={styles.botAvatarSmall}>
+              <Image 
+                source={require("../ChatBot/images/bot.png")} 
+                style={styles.botImageSmall} 
+              />
+              <Animated.View 
+                style={[
+                  styles.avatarRing,
+                  {
+                    transform: [{
+                      rotate: waveAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ['0deg', '360deg'],
+                      })
+                    }]
+                  }
+                ]} 
+              />
+            </View>
+            
+            {/* Animated dots */}
+            <View style={styles.typingDotsArea}>
+              {[0, 1, 2].map((index) => (
+                <Animated.View 
+                  key={index}
+                  style={[
+                    styles.typingDot, 
+                    { 
+                      opacity: animation.interpolate({
+                        inputRange: [0, 0.25, 0.5, 0.75, 1],
+                        outputRange: [
+                          0.3, 
+                          index === 0 ? 1 : 0.3, 
+                          index === 1 ? 1 : 0.3, 
+                          index === 2 ? 1 : 0.3, 
+                          0.3
+                        ],
+                      }),
+                      transform: [{
+                        translateY: animation.interpolate({
+                          inputRange: [0, 0.25, 0.5, 0.75, 1],
+                          outputRange: [
+                            0, 
+                            index === 0 ? -8 : 0, 
+                            index === 1 ? -8 : 0, 
+                            index === 2 ? -8 : 0, 
+                            0
+                          ],
+                        })
+                      }]
+                    }
+                  ]} 
+                />
+              ))}
+            </View>
+          </View>
+        </LinearGradient>
+      </View>
+    </View>
+  );
+};
+```
+
+## Message Rendering
+
+### User Messages
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:366`
+
+```javascript User Message Bubble
+<View style={styles.userMessageWrapper}>
+  <LinearGradient
+    colors={["#1E40AF", "#3B82F6"]}
+    style={styles.userMessageBubble}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 1 }}
+  >
+    <Text style={styles.userMessageText}>
+      {renderTextWithLinks(item.text)}
+    </Text>
+    <View style={styles.messageInfo}>
+      <Text style={styles.messageTime}>
+        {formatTime(item.createdAt)}
+      </Text>
+      <View style={styles.messageStatus}>
+        <FontAwesome name="check-circle" size={14} color="#E8F4FD" />
+      </View>
+    </View>
+  </LinearGradient>
+  <View style={styles.messageTail} />
+</View>
+```
+
+### Bot Messages
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:390`
+
+```javascript Bot Message Card
+<View style={styles.botMessageWrapper}>
+  <View style={styles.botAvatarContainer}>
+    <LinearGradient
+      colors={["#3B82F6", "#1E40AF"]}
+      style={styles.botAvatarBg}
+    >
+      <Image source={item.user.avatar} style={styles.botAvatar} />
+    </LinearGradient>
+    <View style={styles.onlineDot} />
+  </View>
+  
+  <View style={styles.botMessageCard}>
+    <LinearGradient
+      colors={["#ffffff", "#fafbff"]}
+      style={styles.botMessageBubble}
+    >
+      <View style={styles.botMessageHeader}>
+        <Text style={styles.botName}>Asistente CUCEI</Text>
+        <TouchableOpacity
+          style={styles.copyBtn}
+          onPress={() => copyToClipboard(item.text)}
+        >
+          <FontAwesome name="copy" size={12} color="#3B82F6" />
+        </TouchableOpacity>
+      </View>
+      
+      <Text style={styles.botMessageText}>
+        {renderTextWithLinks(item.text)}
+      </Text>
+      
+      <Text style={styles.botMessageTime}>
+        {formatTime(item.createdAt)}
+      </Text>
+    </LinearGradient>
+  </View>
+</View>
+```
+
+## Link Detection
+
+Automatic URL detection and rendering:
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:436`
+
+```javascript Link Rendering
+const renderTextWithLinks = (text) => {
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+  const parts = text.split(urlRegex);
+  
+  return parts.map((part, index) => {
+    if (part.match(urlRegex)) {
+      return (
+        <Text
+          key={index}
+          style={styles.link}
+          onPress={() => Linking.openURL(part)}
+        >
+          {part}
+        </Text>
+      );
+    }
+    return <Text key={index}>{part}</Text>;
+  });
+};
+```
+
+## Inactivity Management
+
+Automatic conversation cleanup after inactivity:
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:476`
+
+```javascript Inactivity Timer
+const resetInactivityTimer = () => {
+  clearTimeout(inactivityTimerRef.current);
+  clearTimeout(deleteTimerRef.current);
+  
+  // Show warning after 2 minutes
+  inactivityTimerRef.current = setTimeout(() => {
+    setShowInactivityModal(true);
+  }, 2 * 60 * 1000);
+  
+  // Auto-delete after 3 minutes
+  deleteTimerRef.current = setTimeout(() => {
+    deleteConversation();
+  }, 3 * 60 * 1000);
+};
+
+const deleteConversation = async () => {
+  const welcomeMessage = messages.find(
+    (message) =>
+      message.user._id === 2 &&
+      message.text.includes("¡Hola! Soy el bot asistente de CUCEI")
+  );
+  const newMessages = welcomeMessage ? [welcomeMessage] : [];
+  setMessages(newMessages);
+  await AsyncStorage.setItem("chatMessages", JSON.stringify(newMessages));
+  setShowInactivityModal(false);
+};
+```
+
+## Chatbot Button
+
+Floating button with tooltip and auto-reappear:
+
+**Location**: `Src/Screens/ChatBot/Chatboot_Button.js:19`
+
+```javascript ChatbotButton Component
+export const ChatbotButton = () => {
+  const navigation = useNavigation();
+  const [showTooltip, setShowTooltip] = useState(true);
+  const [showBot, setShowBot] = useState(true);
+  const appState = useRef(AppState.currentState);
+  const timer = useRef(null);
+
+  const REAPPEAR_DELAY = 5 * 60 * 1000; // 5 minutes
+
+  const hideBot = async () => {
+    setShowBot(false);
+    try {
+      await AsyncStorage.setItem('@botVisibility', JSON.stringify(false));
+      
+      // Auto-reappear after delay
+      timer.current = setTimeout(() => {
+        resetBotVisibility();
+      }, REAPPEAR_DELAY);
+    } catch (error) {
+      console.error('Error saving bot visibility:', error);
+    }
+  };
+
+  return (
+    <View style={styles.container}>
+      {showTooltip && (
+        <View style={styles.tooltip}>
+          <Text style={styles.tooltipText} onPress={handlePress}>
+            ¡Hola! ¿Necesitas ayuda?
+          </Text>
+          <TouchableOpacity 
+            style={styles.closeTooltipButton} 
+            onPress={dismissTooltip}
+          >
+            <FontAwesomeIcon icon={faTimes} size={16} color="#FFFFFF" />
+          </TouchableOpacity>
+        </View>
+      )}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity onPress={handlePress}>
+          <Image
+            source={require('../ChatBot/images/bot.png')}
+            style={styles.chatbotIcon}
+          />
+        </TouchableOpacity>
+        <TouchableOpacity 
+          style={styles.closeButton} 
+          onPress={hideBot}
+        >
+          <FontAwesomeIcon icon={faTimes} size={16} color="#FFFFFF" />
+        </TouchableOpacity>
+      </View>
+    </View>
+  );
+};
+```
+
+## UI Components
+
+### Header Design
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:512`
+
+```javascript Modern Header
+<View style={styles.headerContainer}>
+  <LinearGradient
+    colors={["#1E40AF", "#3B82F6", "#60A5FA"]}
+    style={styles.headerGradient}
+  >
+    <View style={styles.headerContent}>
+      <View style={styles.headerLeft}>
+        <View style={styles.headerBotAvatar}>
+          <Image 
+            source={require("../ChatBot/images/bot.png")} 
+            style={styles.headerBotImage} 
+          />
+          <View style={styles.headerOnlineBadge}>
+            <View style={styles.onlinePulse} />
+          </View>
+        </View>
+        
+        <View style={styles.headerTextArea}>
+          <Text style={styles.headerTitle}>CUCEI Assistant</Text>
+          <View style={styles.headerStatus}>
+            <View style={styles.statusDot} />
+            <Text style={styles.headerSubtitle}>Siempre disponible</Text>
+          </View>
+        </View>
+      </View>
+    </View>
+  </LinearGradient>
+</View>
+```
+
+### Input Section
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:581`
+
+```javascript Enhanced Input
+<View style={styles.inputSection}>
+  <LinearGradient
+    colors={["#ffffff", "#f8fafc", "#e0f2fe"]}
+    style={styles.inputBackground}
+  >
+    <View style={styles.inputContainer}>
+      <View style={styles.inputWrapper}>
+        <TextInput
+          style={styles.messageInput}
+          value={inputMessage}
+          onChangeText={setInputMessage}
+          placeholder="Escribe tu mensaje aquí..."
+          placeholderTextColor="#94A3B8"
+          multiline={true}
+          maxLength={1000}
+          returnKeyType="send"
+          onSubmitEditing={onSend}
+        />
+      </View>
+      
+      <TouchableOpacity
+        style={[
+          styles.sendButtonContainer,
+          !inputMessage.trim() && styles.sendDisabled
+        ]}
+        onPress={onSend}
+        disabled={!inputMessage.trim()}
+      >
+        <LinearGradient
+          colors={inputMessage.trim() 
+            ? ["#3B82F6", "#1E40AF", "#1E3A8A"] 
+            : ["#E5E7EB", "#D1D5DB", "#9CA3AF"]
+          }
+          style={styles.sendButtonGradient}
+        >
+          <FontAwesome
+            name="paper-plane"
+            size={16}
+            color={inputMessage.trim() ? "#ffffff" : "#6B7280"}
+          />
+        </LinearGradient>
+      </TouchableOpacity>
+    </View>
+  </LinearGradient>
+</View>
+```
+
+## Welcome Modal
+
+First-time user onboarding:
+
+**Location**: `Src/Screens/ChatBot/Chatbot.js:634`
+
+```javascript Welcome Experience
+<Modal
+  animationType="slide"
+  transparent={true}
+  visible={showWelcome}
+  onRequestClose={handleCloseWelcome}
+>
+  <BlurView intensity={100} style={styles.modalBackground}>
+    <Animatable.View
+      animation="bounceInUp"
+      duration={800}
+      style={styles.welcomeModal}
+    >
+      <LinearGradient
+        colors={["#1E40AF", "#3B82F6", "#60A5FA"]}
+        style={styles.modalHeaderGradient}
+      >
+        <View style={styles.modalIcon}>
+          <FontAwesome name="robot" size={32} color="#ffffff" />
+        </View>
+        <Text style={styles.modalWelcomeTitle}>¡Hola! Soy tu asistente</Text>
+        <Text style={styles.modalWelcomeSubtitle}>Estoy aquí para ayudarte</Text>
+      </LinearGradient>
+      
+      <View style={styles.modalBodyContent}>
+        <LottieView
+          source={require("../ChatBot/images/Bot_animation.json")}
+          autoPlay
+          loop
+          style={styles.modalAnimation}
+        />
+        <Text style={styles.modalDescription}>
+          Puedo ayudarte con información sobre CUCEI, horarios, eventos, ubicaciones y mucho más.
+        </Text>
+      </View>
+      
+      <TouchableOpacity
+        style={styles.startChatButton}
+        onPress={handleCloseWelcome}
+      >
+        <LinearGradient
+          colors={["#3B82F6", "#1E40AF"]}
+          style={styles.startButtonGradient}
+        >
+          <FontAwesome name="comments" size={18} color="#ffffff" />
+          <Text style={styles.startButtonText}>Comenzar conversación</Text>
+        </LinearGradient>
+      </TouchableOpacity>
+    </Animatable.View>
+  </BlurView>
+</Modal>
+```
+
+## Performance Considerations
+
+<CardGroup cols={2}>
+  <Card title="Message Limit" icon="list-check">
+    Responses capped at 5000 characters to prevent UI lag
+  </Card>
+  <Card title="Inverted List" icon="arrow-down-up-across-line">
+    FlatList inverted for natural chat flow without scroll manipulation
+  </Card>
+  <Card title="Native Driver" icon="gauge-high">
+    All animations use native driver for 60 FPS
+  </Card>
+  <Card title="Memoized Components" icon="memory">
+    Message rendering optimized with useCallback
+  </Card>
+</CardGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Profile System" icon="user" href="/features/profile-system">
+    Learn about user authentication and profiles
+  </Card>
+  <Card title="Interactive Map" icon="map" href="/features/interactive-map">
+    Explore the campus navigation system
+  </Card>
+</CardGroup>

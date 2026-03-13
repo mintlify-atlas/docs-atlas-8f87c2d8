@@ -1,0 +1,638 @@
+---
+title: 'API Integration'
+description: 'Learn how CUCEIUbicate connects to backend services, handles HTTP requests, and manages data'
+icon: 'plug'
+---
+
+## Overview
+
+CUCEIUbicate uses a centralized API client architecture to communicate with backend services. The API layer provides type-safe functions for user management, authentication, and data operations.
+
+## API Architecture
+
+<CardGroup cols={3}>
+  <Card title="Base Client" icon="server">
+    Core HTTP client with error handling
+  </Card>
+  <Card title="Type Definitions" icon="code">
+    TypeScript interfaces for data models
+  </Card>
+  <Card title="API Functions" icon="function">
+    Typed functions for each endpoint
+  </Card>
+</CardGroup>
+
+## Base Configuration
+
+### API Client Setup
+
+The base API client handles all HTTP communication:
+
+<CodeGroup>
+```typescript Src/Api/api.ts
+const BASE = 'https://ilabtdi.com/api_ubicate';
+const USE_INDEX_PHP = true;
+
+const url = (p: string) => `${BASE}${USE_INDEX_PHP ? '/index.php' : ''}${p}`;
+
+// String sanitization for collation issues
+const cleanString = (str: string): string => {
+  if (!str) return '';
+  
+  return str
+    .normalize('NFD')                    // Decompose accented characters
+    .replace(/[\u0300-\u036f]/g, '')    // Remove diacritics
+    .replace(/[^\w\s@.-]/g, '')         // Only safe characters
+    .trim();
+};
+
+// Core HTTP function
+async function http(path: string, init: RequestInit = {}) {
+  try {
+    console.log('🌐 Making request to:', url(path));
+    
+    const res = await fetch(url(path), {
+      ...init,
+      headers: { 
+        'Content-Type': 'application/json', 
+        'Accept': 'application/json',
+        ...(init.headers || {}) 
+      },
+    });
+    
+    console.log('📡 Response status:', res.status);
+    
+    if (!res.ok) {
+      const errorText = await res.text();
+      console.error('❌ Server error:', errorText);
+      throw new Error(`HTTP ${res.status}: ${errorText}`);
+    }
+    
+    const responseText = await res.text();
+    console.log('📄 Raw server response:', responseText);
+    
+    if (!responseText.trim()) {
+      console.log('⚠️ Empty response from server');
+      return null;
+    }
+    
+    // Clean response - remove text before JSON
+    let cleanedResponse = responseText;
+    const jsonStartArray = responseText.indexOf('[');
+    const jsonStartObject = responseText.indexOf('{');
+    
+    let jsonStart = -1;
+    if (jsonStartArray !== -1 && jsonStartObject !== -1) {
+      jsonStart = Math.min(jsonStartArray, jsonStartObject);
+    } else if (jsonStartArray !== -1) {
+      jsonStart = jsonStartArray;
+    } else if (jsonStartObject !== -1) {
+      jsonStart = jsonStartObject;
+    }
+    
+    if (jsonStart > 0) {
+      cleanedResponse = responseText.substring(jsonStart);
+      console.log('🧹 Cleaned response:', cleanedResponse);
+    }
+    
+    try {
+      const jsonData = JSON.parse(cleanedResponse);
+      console.log('✅ JSON parsed successfully:', jsonData);
+      return jsonData;
+    } catch (parseError) {
+      console.error('❌ Error parsing JSON:', parseError);
+      
+      if (cleanedResponse.includes('<html>') || cleanedResponse.includes('<!DOCTYPE')) {
+        throw new Error('Server returned HTML instead of JSON. Check URL and endpoint.');
+      }
+      
+      throw new Error(`Invalid server response: ${cleanedResponse.substring(0, 100)}...`);
+    }
+    
+  } catch (error) {
+    console.error('🚨 Error in HTTP request:', error);
+    throw error;
+  }
+}
+```
+</CodeGroup>
+
+<Warning>
+The API client includes response cleaning to handle cases where the server returns extra text before JSON. This is common with some PHP configurations.
+</Warning>
+
+## Type Definitions
+
+### Data Models
+
+<Tabs>
+  <Tab title="UserRow">
+    ```typescript
+    export type UserRow = {
+      id: number;                    // Primary key (auto-increment)
+      int_user_code: number;         // Student code
+      var_email: string;
+      var_password: string;          // Hashed password
+      var_degree_code: string;
+      var_name: string;
+      var_lastnames: string;
+      var_username: string;
+    }
+    ```
+  </Tab>
+  <Tab title="DegreeRow">
+    ```typescript
+    export type DegreeRow = {
+      var_code: string;      // Primary key
+      var_name: string;      // Degree name
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## User Management API
+
+### Finding Users
+
+<CodeGroup>
+```typescript Find by Email
+export const findUserByEmail = async (email: string): Promise<UserRow[]> => {
+  try {
+    console.log('🔍 Searching user by email:', email);
+    
+    // Clean and encode email
+    const cleanEmail = cleanString(email.toLowerCase());
+    const encodedEmail = encodeURIComponent(cleanEmail);
+    
+    const result = await http(`/CUB_users?var_email=${encodedEmail}`);
+    
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (result.data && Array.isArray(result.data)) return result.data;
+    if (typeof result === 'object') return [result];
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Error searching user by email:', error);
+    return [];
+  }
+};
+```
+
+```typescript Find by Username
+export const findUserByUsername = async (username: string): Promise<UserRow[]> => {
+  try {
+    console.log('🔍 Searching user by username:', username);
+    
+    const cleanUsername = cleanString(username.toLowerCase());
+    const encodedUsername = encodeURIComponent(cleanUsername);
+    
+    const result = await http(`/CUB_users?var_username=${encodedUsername}`);
+    
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (result.data && Array.isArray(result.data)) return result.data;
+    if (typeof result === 'object') return [result];
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Error searching user by username:', error);
+    return [];
+  }
+};
+```
+
+```typescript Find by Code
+export const findUserByCode = async (code: string | number): Promise<UserRow[]> => {
+  try {
+    console.log('🔍 Searching user by code:', code);
+    
+    // Convert to string and clean (numbers only)
+    const codeString = String(code).replace(/[^\d]/g, '');
+    const encodedCode = encodeURIComponent(codeString);
+    
+    const result = await http(`/CUB_users?int_user_code=${encodedCode}`);
+    
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (result.data && Array.isArray(result.data)) return result.data;
+    if (typeof result === 'object') return [result];
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Error searching user by code:', error);
+    return [];
+  }
+};
+```
+
+```typescript Find by ID
+export const findUserById = async (userId: number): Promise<UserRow | null> => {
+  try {
+    console.log('🔍 Searching user by ID:', userId);
+    const result = await http(`/CUB_users/${userId}`);
+    
+    if (!result) return null;
+    if (typeof result === 'object') return result;
+    
+    return null;
+  } catch (error) {
+    console.error('❌ Error searching user by ID:', error);
+    return null;
+  }
+};
+```
+</CodeGroup>
+
+### Creating Users
+
+<CodeGroup>
+```typescript Insert User
+export const insertUser = async (userData: {
+  email: string;
+  username: string;
+  password: string;
+  name: string;
+  lastnames: string;
+  degree_code: string;
+}): Promise<number> => {
+  try {
+    console.log('📝 Inserting new user:', userData.username);
+    
+    // Hash password
+    const hashedPassword = secureHash(userData.password);
+    
+    // Clean all strings
+    const payload = {
+      var_email: cleanString(userData.email.toLowerCase()),
+      var_password: hashedPassword,
+      var_degree_code: cleanString(userData.degree_code.toUpperCase()),
+      var_name: cleanString(userData.name),
+      var_lastnames: cleanString(userData.lastnames),
+      var_username: cleanString(userData.username.toLowerCase())
+    };
+
+    const result = await http('/CUB_users', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+
+    console.log('✅ User inserted, response:', result);
+
+    // Handle different response formats
+    if (typeof result === 'number') return result;
+    if (result && result.id) return result.id;
+    if (result && result.insertId) return result.insertId;
+    
+    // If success, fetch the newly created user
+    if (result && (result.success || result.status === 'success')) {
+      const newUser = await findUserByUsername(userData.username);
+      if (newUser.length > 0 && newUser[0].id) {
+        return newUser[0].id;
+      }
+    }
+
+    throw new Error('Could not get ID of inserted user');
+  } catch (error) {
+    console.error('❌ Error inserting user:', error);
+    throw error;
+  }
+};
+```
+
+```typescript Create User
+export const createUser = async (userData: any): Promise<any> => {
+  try {
+    console.log('📝 Creating new user:', userData.var_username);
+    
+    const cleanPayload = {
+      int_user_code: Number(userData.int_user_code),
+      var_email: cleanString(userData.var_email?.toLowerCase() || ''),
+      var_password: userData.var_password,
+      var_degree_code: cleanString(userData.var_degree_code?.toUpperCase() || ''),
+      var_name: cleanString(userData.var_name || ''),
+      var_lastnames: cleanString(userData.var_lastnames || ''),
+      var_username: cleanString(userData.var_username?.toLowerCase() || '')
+    };
+
+    const result = await http('/CUB_users', {
+      method: 'POST',
+      body: JSON.stringify(cleanPayload)
+    });
+
+    console.log('✅ User created, response:', result);
+    return result;
+  } catch (error) {
+    console.error('❌ Error creating user:', error);
+    throw error;
+  }
+};
+```
+</CodeGroup>
+
+### Updating Users
+
+<CodeGroup>
+```typescript Update User
+export const updateUser = async (userId: number, userData: Partial<UserRow>): Promise<boolean> => {
+  try {
+    console.log('📝 Updating user:', userId);
+    
+    const result = await http(`/CUB_users/${userId}`, {
+      method: 'PUT',
+      body: JSON.stringify(userData)
+    });
+
+    console.log('✅ User updated, response:', result);
+    
+    return result && typeof result === 'object';
+  } catch (error) {
+    console.error('❌ Error updating user:', error);
+    return false;
+  }
+};
+```
+
+```typescript Update Password
+export const updateUserPassword = async (
+  userId: number, 
+  newPasswordHash: string
+): Promise<boolean> => {
+  try {
+    return await updateUser(userId, { var_password: newPasswordHash });
+  } catch (error) {
+    console.error('❌ Error updating password:', error);
+    return false;
+  }
+};
+```
+</CodeGroup>
+
+### Deleting Users
+
+```typescript
+export const deleteUser = async (userId: number): Promise<boolean> => {
+  try {
+    console.log('🗑️ Deleting user:', userId);
+    
+    const result = await http(`/CUB_users/${userId}`, {
+      method: 'DELETE'
+    });
+
+    console.log('✅ User deleted, response:', result);
+    
+    return result && result.ok === true;
+  } catch (error) {
+    console.error('❌ Error deleting user:', error);
+    return false;
+  }
+};
+```
+
+### Listing Users
+
+```typescript
+export const getAllUsers = async (): Promise<UserRow[]> => {
+  try {
+    console.log('📋 Fetching all users');
+    const result = await http('/CUB_users?order=var_name&dir=ASC');
+    
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (result.data && Array.isArray(result.data)) return result.data;
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Error fetching users:', error);
+    return [];
+  }
+};
+```
+
+## Degree Management API
+
+### List Degrees
+
+```typescript Src/Api/api.ts
+export const listDegrees = async (): Promise<DegreeRow[]> => {
+  try {
+    const result = await http('/CUB_degrees?order=var_name&dir=ASC');
+    
+    if (!result) return [];
+    if (Array.isArray(result)) return result;
+    if (result.data && Array.isArray(result.data)) return result.data;
+    if (typeof result === 'object') return [result];
+    
+    return [];
+  } catch (error) {
+    console.error('❌ Error in listDegrees:', error);
+    return [];
+  }
+};
+```
+
+## Validation Utilities
+
+Client-side validation functions:
+
+<Tabs>
+  <Tab title="Email">
+    ```typescript
+    export const validateEmail = (email: string): { isValid: boolean; message?: string } => {
+      if (!email) {
+        return { isValid: false, message: 'El email es requerido' };
+      }
+
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(email)) {
+        return { isValid: false, message: 'Formato de email inválido' };
+      }
+
+      return { isValid: true };
+    };
+    ```
+  </Tab>
+  <Tab title="Username">
+    ```typescript
+    export const validateUsername = (username: string): { isValid: boolean; message?: string } => {
+      if (!username) {
+        return { isValid: false, message: 'El nombre de usuario es requerido' };
+      }
+
+      if (username.length < 3) {
+        return { isValid: false, message: 'Mínimo 3 caracteres' };
+      }
+
+      if (username.length > 30) {
+        return { isValid: false, message: 'Máximo 30 caracteres' };
+      }
+
+      if (!/^[a-zA-Z0-9_.-]+$/.test(username)) {
+        return { isValid: false, message: 'Solo letras, números, puntos, guiones y guiones bajos' };
+      }
+
+      return { isValid: true };
+    };
+    ```
+  </Tab>
+  <Tab title="Password">
+    ```typescript
+    export const validatePassword = (password: string): { isValid: boolean; message?: string } => {
+      if (!password) {
+        return { isValid: false, message: 'La contraseña es requerida' };
+      }
+
+      if (password.length < 6) {
+        return { isValid: false, message: 'Mínimo 6 caracteres' };
+      }
+
+      if (password.length > 50) {
+        return { isValid: false, message: 'Máximo 50 caracteres' };
+      }
+
+      return { isValid: true };
+    };
+    ```
+  </Tab>
+</Tabs>
+
+## Registration API
+
+### Complete Registration Flow
+
+```typescript Src/Api/register.ts
+export const registerUser = async (userData: {
+  email: string;
+  username: string;
+  password: string;
+  name: string;
+  lastnames: string;
+  degree_code: string;
+}): Promise<{ success: boolean; message: string; userId?: number }> => {
+  try {
+    // Validate email
+    const emailValidation = validateEmail(userData.email);
+    if (!emailValidation.isValid) {
+      return { success: false, message: emailValidation.message! };
+    }
+
+    // Validate username
+    const usernameValidation = validateUsername(userData.username);
+    if (!usernameValidation.isValid) {
+      return { success: false, message: usernameValidation.message! };
+    }
+
+    // Validate password
+    const passwordValidation = validatePassword(userData.password);
+    if (!passwordValidation.isValid) {
+      return { success: false, message: passwordValidation.message! };
+    }
+
+    // Check if email exists
+    const existingEmail = await findUserByEmail(userData.email);
+    if (existingEmail && existingEmail.length > 0) {
+      return { success: false, message: 'El email ya está registrado' };
+    }
+
+    // Check if username exists
+    const existingUsername = await findUserByUsername(userData.username);
+    if (existingUsername && existingUsername.length > 0) {
+      return { success: false, message: 'El nombre de usuario ya está en uso' };
+    }
+
+    // Insert user
+    const userId = await insertUser(userData);
+    
+    return {
+      success: true,
+      message: 'Usuario registrado exitosamente',
+      userId: userId
+    };
+
+  } catch (error) {
+    console.error('🚨 Error en registro:', error);
+    return {
+      success: false,
+      message: 'Error interno del servidor. Por favor intenta de nuevo.'
+    };
+  }
+};
+```
+
+## Error Handling
+
+### HTTP Error Handling
+
+The API client includes comprehensive error handling:
+
+<CodeGroup>
+```typescript Network Errors
+try {
+  const result = await http('/endpoint');
+  // Process result
+} catch (error) {
+  if (error.message.includes('HTTP')) {
+    // Server returned error status
+    console.error('Server error:', error);
+  } else if (error.message.includes('Network')) {
+    // Network connectivity issue
+    console.error('Network error:', error);
+  } else {
+    // Other errors
+    console.error('Unknown error:', error);
+  }
+}
+```
+
+```typescript Validation Errors
+const emailValidation = validateEmail(email);
+if (!emailValidation.isValid) {
+  // Handle validation error
+  setError(emailValidation.message);
+  return;
+}
+```
+</CodeGroup>
+
+### Response Normalization
+
+The API client normalizes different response formats:
+
+```typescript
+// Handle array response
+if (Array.isArray(result)) return result;
+
+// Handle object with data property
+if (result.data && Array.isArray(result.data)) return result.data;
+
+// Handle single object
+if (typeof result === 'object') return [result];
+
+// Default to empty array
+return [];
+```
+
+## Best Practices
+
+<CardGroup cols={2}>
+  <Card title="String Cleaning" icon="broom">
+    Always use `cleanString()` for user input to prevent collation issues with special characters.
+  </Card>
+  <Card title="URL Encoding" icon="link">
+    Use `encodeURIComponent()` for all query parameters to handle special characters safely.
+  </Card>
+  <Card title="Type Safety" icon="shield">
+    Leverage TypeScript types to catch errors at compile time and improve code reliability.
+  </Card>
+  <Card title="Error Logging" icon="bug">
+    Log all API errors with context to aid debugging and monitoring.
+  </Card>
+</CardGroup>
+
+## Related Files
+
+- **Base API Client**: `Src/Api/api.ts:19` (http function), `Src/Api/api.ts:8` (cleanString)
+- **User API**: `Src/Api/api.ts:131` (findUserByEmail), `Src/Api/api.ts:270` (insertUser)
+- **Login API**: `Src/Api/login.ts:144` (login function)
+- **Register API**: `Src/Api/register.ts:77` (registerUser)
+- **Lib API**: `Src/Api/lib/api.ts:19` (alternative http implementation)

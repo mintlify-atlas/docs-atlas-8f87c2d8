@@ -1,0 +1,385 @@
+---
+title: 'Building the App'
+description: 'Build CUCEIUbicate for Android and iOS platforms'
+icon: 'hammer'
+---
+
+This guide covers the build process for CUCEIUbicate using Expo Application Services (EAS) for both Android and iOS platforms.
+
+## Prerequisites
+
+Before building the app, ensure you have:
+
+- Completed the [development setup](/development/setup)
+- An Expo account (create one at [expo.dev](https://expo.dev))
+- EAS CLI installed (included in dependencies)
+- Appropriate platform accounts (Google Play Console for Android, Apple Developer for iOS)
+
+## EAS Build Configuration
+
+CUCEIUbicate uses EAS Build for creating production-ready builds. The configuration is defined in `eas.json`.
+
+### Build Profiles
+
+The project includes three build profiles:
+
+<Tabs>
+  <Tab title="Development">
+    **Development builds** include the Expo development client for debugging:
+    
+    ```json
+    {
+      "developmentClient": true,
+      "distribution": "internal",
+      "ios": {
+        "simulator": true
+      },
+      "android": {
+        "image": "latest",
+        "env": {
+          "EXPO_DEBUG": "true"
+        }
+      }
+    }
+    ```
+    
+    Features:
+    - Development client enabled
+    - Internal distribution
+    - iOS simulator support
+    - Debug mode enabled
+  </Tab>
+
+  <Tab title="Preview">
+    **Preview builds** are for testing before production:
+    
+    ```json
+    {
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk",
+        "image": "latest",
+        "env": {
+          "EXPO_DEBUG": "true"
+        }
+      }
+    }
+    ```
+    
+    Features:
+    - Internal distribution
+    - APK format for easy Android testing
+    - Debug mode enabled
+  </Tab>
+
+  <Tab title="Production">
+    **Production builds** are optimized for app store distribution:
+    
+    ```json
+    {
+      "autoIncrement": true,
+      "ios": {
+        "simulator": false
+      },
+      "android": {
+        "image": "latest",
+        "env": {
+          "EXPO_DEBUG": "true"
+        }
+      }
+    }
+    ```
+    
+    Features:
+    - Automatic version incrementing
+    - No iOS simulator support (device only)
+    - Optimized for app stores
+  </Tab>
+</Tabs>
+
+## Setting Up EAS
+
+<Steps>
+  <Step title="Install EAS CLI">
+    EAS CLI is already included in the project dependencies. Verify installation:
+    ```bash
+    npx eas-cli --version
+    ```
+  </Step>
+
+  <Step title="Login to Expo">
+    Authenticate with your Expo account:
+    ```bash
+    npx eas login
+    ```
+  </Step>
+
+  <Step title="Configure Project">
+    Link your project to EAS (if not already configured):
+    ```bash
+    npx eas build:configure
+    ```
+    
+    <Note>
+      The project is already configured with EAS Project ID: `08a561e4-8d60-47af-b4b6-f830296c28e8`
+    </Note>
+  </Step>
+</Steps>
+
+## Building for Android
+
+### Android Configuration
+
+The app is configured with the following Android settings in `app.json`:
+
+- **Package**: `com.cuceiubicate.cuceiubicate`
+- **Version Code**: 1
+- **Min SDK**: 24
+- **Target SDK**: 35
+- **Compile SDK**: 35
+- **Permissions**: Storage read/write access
+
+### Build Commands
+
+<CodeGroup>
+```bash Development Build
+npx eas build --platform android --profile development
+```
+
+```bash Preview Build (APK)
+npx eas build --platform android --profile preview
+```
+
+```bash Production Build
+npx eas build --platform android --profile production
+```
+
+```bash Local Build
+npx eas build --platform android --profile production --local
+```
+</CodeGroup>
+
+<Warning>
+  Production builds create AAB files for Google Play Store. Preview builds create APK files for direct installation.
+</Warning>
+
+### Android Build Process
+
+<Steps>
+  <Step title="Start the Build">
+    Run the build command for your desired profile:
+    ```bash
+    npx eas build --platform android --profile production
+    ```
+  </Step>
+
+  <Step title="Configure Credentials">
+    EAS will prompt you to configure Android credentials:
+    - Generate a new keystore (recommended for first build)
+    - Or use an existing keystore
+    
+    <Note>
+      EAS securely manages your credentials in the cloud.
+    </Note>
+  </Step>
+
+  <Step title="Monitor Build Progress">
+    Track your build progress:
+    - In the terminal output
+    - On the [EAS Build dashboard](https://expo.dev/accounts/[account]/projects/cuceiubicate/builds)
+  </Step>
+
+  <Step title="Download Build">
+    Once complete, download your build:
+    ```bash
+    npx eas build:download --platform android
+    ```
+  </Step>
+</Steps>
+
+## Building for iOS
+
+### iOS Configuration
+
+The app is configured with the following iOS settings in `app.json`:
+
+- **Bundle Identifier**: `yairhdz24`
+- **Version**: 1.0.0
+- **Supports Tablet**: Yes
+- **Permissions**: Photo library access for saving images
+
+<Warning>
+  iOS builds require an Apple Developer account ($99/year). Development builds can run on the iOS simulator without an account.
+</Warning>
+
+### Build Commands
+
+<CodeGroup>
+```bash Development Build
+npx eas build --platform ios --profile development
+```
+
+```bash Production Build
+npx eas build --platform ios --profile production
+```
+
+```bash Simulator Build
+npx eas build --platform ios --profile development
+```
+</CodeGroup>
+
+### iOS Build Process
+
+<Steps>
+  <Step title="Apple Developer Account">
+    Ensure you have:
+    - An active Apple Developer account
+    - Appropriate certificates and provisioning profiles
+    - App ID registered in Apple Developer Portal
+  </Step>
+
+  <Step title="Start the Build">
+    Run the build command:
+    ```bash
+    npx eas build --platform ios --profile production
+    ```
+  </Step>
+
+  <Step title="Configure Credentials">
+    EAS will guide you through:
+    - Distribution certificate setup
+    - Provisioning profile creation
+    - Push notification configuration (if needed)
+  </Step>
+
+  <Step title="Download Build">
+    Download the IPA file when ready:
+    ```bash
+    npx eas build:download --platform ios
+    ```
+  </Step>
+</Steps>
+
+## Building for Both Platforms
+
+Build for Android and iOS simultaneously:
+
+```bash
+npx eas build --platform all --profile production
+```
+
+## App Configuration
+
+### Key App Settings
+
+From `app.json`, the app includes:
+
+- **App Name**: CUCEIUbicate
+- **Orientation**: Portrait only
+- **User Interface Style**: Light mode
+- **Asset Bundle**: All assets included
+
+### Plugins
+
+The app uses the following Expo plugins:
+
+- `expo-secure-store` - Secure storage for sensitive data
+- `expo-video` - Video playback support
+- Custom plugin to remove RECORD_AUDIO permission
+- `expo-build-properties` - Android SDK configuration
+
+## Submitting to App Stores
+
+### Google Play Store
+
+<Steps>
+  <Step title="Build Production AAB">
+    ```bash
+    npx eas build --platform android --profile production
+    ```
+  </Step>
+
+  <Step title="Submit to Google Play">
+    Use EAS Submit:
+    ```bash
+    npx eas submit --platform android
+    ```
+    
+    Or manually upload the AAB to [Google Play Console](https://play.google.com/console)
+  </Step>
+</Steps>
+
+### Apple App Store
+
+<Steps>
+  <Step title="Build Production IPA">
+    ```bash
+    npx eas build --platform ios --profile production
+    ```
+  </Step>
+
+  <Step title="Submit to App Store">
+    Use EAS Submit:
+    ```bash
+    npx eas submit --platform ios
+    ```
+    
+    Or manually upload using [App Store Connect](https://appstoreconnect.apple.com)
+  </Step>
+</Steps>
+
+## Version Management
+
+The production profile uses `autoIncrement: true` to automatically increment the build version code/number.
+
+<Note>
+  The app version in `app.json` (1.0.0) should be manually updated for major releases.
+</Note>
+
+## Troubleshooting
+
+<AccordionGroup>
+  <Accordion title="Build fails with credentials error">
+    Clear and reconfigure credentials:
+    ```bash
+    npx eas credentials
+    ```
+    Select your platform and regenerate credentials if needed.
+  </Accordion>
+
+  <Accordion title="Android build fails with dependency error">
+    Check that your `android` configuration in `app.json` matches the SDK versions:
+    - compileSdkVersion: 35
+    - targetSdkVersion: 35
+    - minSdkVersion: 24
+  </Accordion>
+
+  <Accordion title="iOS build fails with provisioning error">
+    Ensure:
+    - Your Apple Developer account is active
+    - Bundle identifier matches your App ID
+    - Provisioning profiles are valid
+    
+    Try regenerating provisioning profiles in EAS credentials.
+  </Accordion>
+
+  <Accordion title="Build is taking too long">
+    EAS builds are queued and can take 10-30 minutes depending on:
+    - Queue length
+    - Build complexity
+    - Platform (iOS typically takes longer)
+    
+    Monitor progress at expo.dev/accounts/[account]/builds
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Development Setup" icon="wrench" href="/development/setup">
+    Return to setup guide
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Learn how to contribute to CUCEIUbicate
+  </Card>
+</CardGroup>

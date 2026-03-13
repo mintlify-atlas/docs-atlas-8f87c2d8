@@ -1,0 +1,405 @@
+---
+title: 'Interactive Map System'
+description: 'SVG-based campus map with zoom, pan, and real-time route visualization'
+icon: 'map'
+---
+
+## Overview
+
+CUCEIUbicate features a sophisticated interactive map system built with React Native SVG, providing students with precise navigation across the CUCEI campus. The map supports smooth zoom/pan gestures, animated route rendering, and interactive building markers.
+
+<CardGroup cols={2}>
+  <Card title="SVG Rendering" icon="vector-square">
+    High-performance vector graphics for crisp display at any zoom level
+  </Card>
+  <Card title="Gesture Support" icon="hand-pointer">
+    Native zoom and pan controls with ImageZoom integration
+  </Card>
+  <Card title="Route Animation" icon="route">
+    Smooth, animated path visualization with gradient effects
+  </Card>
+  <Card title="Building Markers" icon="location-dot">
+    Interactive touchable areas for all 50+ campus buildings
+  </Card>
+</CardGroup>
+
+## Core Components
+
+### MapSVG Component
+
+The `MapSVG` component renders the interactive route overlay on top of the static campus map image.
+
+**Location**: `Src/Screens/Home/Components/MapComponent/MapSVG.js:26`
+
+```javascript MapSVG.js
+const MapSVG = ({
+  isRouteActive = false,
+  activeRoutePoints = [],
+  points = [],
+  onPointPress,
+  markedObject,
+  setMarkedObject,
+}) => {
+  // Route animation state
+  const dashOffset = useRef(new Animated.Value(0)).current;
+  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const glowAnim = useRef(new Animated.Value(0)).current;
+
+  // Animated route rendering
+  useEffect(() => {
+    if (isRouteActive && activeRoutePoints.length > 1) {
+      // Dash offset animation for flowing effect
+      Animated.loop(
+        Animated.timing(dashOffset, {
+          toValue: 30,
+          duration: 2000,
+          useNativeDriver: true,
+        })
+      ).start();
+
+      // Pulse animation for markers
+      Animated.loop(
+        Animated.sequence([
+          Animated.timing(pulseAnim, {
+            toValue: 1.3,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 800,
+            useNativeDriver: true,
+          }),
+        ])
+      ).start();
+    }
+  }, [isRouteActive, activeRoutePoints]);
+
+  return (
+    <View style={[StyleSheet.absoluteFill, { pointerEvents: "box-none" }]}>
+      {renderRouteLine()}
+      {renderPoints()}
+      {renderMarker()}
+      {renderRoutePins()}
+    </View>
+  );
+};
+```
+
+### Route Rendering with Multi-Layer Effects
+
+The map uses a sophisticated multi-layer rendering approach for beautiful route visualization:
+
+**Location**: `Src/Screens/Home/Components/MapComponent/MapSVG.js:146`
+
+```javascript Route Layers
+const renderRouteLine = () => {
+  if (!isRouteActive || activeRoutePoints.length < 2) return null;
+  
+  return (
+    <Svg style={StyleSheet.absoluteFill} pointerEvents="none">
+      <Defs>
+        {/* Blue gradient for route line */}
+        <LinearGradient id="routeGradient" x1="0" y1="0" x2="1" y2="0">
+          <Stop offset="0%" stopColor="#0033A0" stopOpacity="1" />
+          <Stop offset="25%" stopColor="#1E40AF" stopOpacity="1" />
+          <Stop offset="50%" stopColor="#3B82F6" stopOpacity="1" />
+          <Stop offset="75%" stopColor="#60A5FA" stopOpacity="1" />
+          <Stop offset="100%" stopColor="#93C5FD" stopOpacity="1" />
+        </LinearGradient>
+      </Defs>
+
+      {/* Shadow layer */}
+      <AnimatedPolyline
+        points={pointsString}
+        fill="none"
+        stroke="url(#shadowGradient)"
+        strokeWidth={14}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+
+      {/* Main gradient layer */}
+      <AnimatedPolyline
+        points={pointsString}
+        fill="none"
+        stroke="url(#routeGradient)"
+        strokeWidth={8}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="15,8"
+        strokeDashoffset={dashOffset}
+      />
+
+      {/* Glow layer */}
+      <AnimatedPolyline
+        points={pointsString}
+        fill="none"
+        stroke="#FFFFFF"
+        strokeWidth={3}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeDasharray="10,15"
+        strokeDashoffset={dashOffset}
+        style={{ opacity: glowAnim }}
+      />
+    </Svg>
+  );
+};
+```
+
+<Note>
+The multi-layer approach creates a visually stunning route with:
+- Shadow layer for depth
+- Gradient layer for color transition
+- Animated glow layer for emphasis
+- Dashed pattern for motion effect
+</Note>
+
+## Map Data Structure
+
+### Building Point System
+
+All campus buildings are defined in a structured data format:
+
+**Location**: `Src/Screens/Home/Components/MapComponent/data.js:1`
+
+```javascript Building Data
+export const points = [
+  {
+    id: "Biblioteca",
+    name: "Biblioteca",
+    aliases: ["Biblioteca", "biblioteca", "becas", "internacionalizacion"],
+    left: 540,
+    top: 1035,
+    height: 73,
+    width: 80,
+    rotate: 5,
+  },
+  {
+    id: "Modulo A",
+    name: "Módulo A",
+    aliases: ["Modulo A", "modulo a", "MA", "edificio a"],
+    left: 493,
+    top: 1130,
+    height: 140,
+    width: 60,
+    rotate: -33,
+  },
+  // ... 50+ more building definitions
+];
+```
+
+### Point Properties
+
+<Tabs>
+  <Tab title="Core Properties">
+    - `id`: Unique identifier for the building
+    - `name`: Display name shown to users
+    - `left`: X-coordinate position on map
+    - `top`: Y-coordinate position on map
+  </Tab>
+  <Tab title="Dimensions">
+    - `width`: Touchable area width in pixels
+    - `height`: Touchable area height in pixels
+    - `rotate`: Rotation angle to match building orientation
+  </Tab>
+  <Tab title="Search">
+    - `aliases`: Array of search terms and variations
+    - Supports Spanish and common abbreviations
+    - Case-insensitive matching
+  </Tab>
+</Tabs>
+
+## Zoom & Pan Functionality
+
+The map uses `react-native-image-pan-zoom` for smooth gesture handling:
+
+**Location**: `Src/Screens/Home/HomePage.js:24`
+
+```javascript Zoom Configuration
+<ImageZoom
+  cropWidth={width}
+  cropHeight={height}
+  imageWidth={width}
+  imageHeight={height}
+  enableSwipeDown={false}
+  minScale={1}
+  maxScale={4}
+  enableCenterFocus={true}
+  doubleClickInterval={250}
+  enableDoubleClickZoom={true}
+  pinchToZoom={true}
+  panToMove={true}
+  clickDistance={10}
+>
+  <Image 
+    source={currentMapImage} 
+    style={styles.mapImage}
+    resizeMode="contain"
+  />
+  <MapSVG
+    isRouteActive={isRouteActive}
+    activeRoutePoints={activeRoutePoints}
+    points={points}
+    onPointPress={handlePointPress}
+    markedObject={markedObject}
+    setMarkedObject={setMarkedObject}
+  />
+</ImageZoom>
+```
+
+### Gesture Features
+
+- **Pinch to Zoom**: Scale from 1x to 4x magnification
+- **Double Tap**: Quick zoom to 2x on double tap
+- **Pan**: Smooth dragging when zoomed in
+- **Center Focus**: Auto-center on zoom operations
+- **Click Distance**: 10px threshold to distinguish taps from drags
+
+## Interactive Markers
+
+Buildings can be marked for quick reference:
+
+**Location**: `Src/Screens/Home/Components/MapComponent/MapSVG.js:115`
+
+```javascript Marker Rendering
+const renderMarker = () => {
+  if (!markedObject) return null;
+  
+  const markerPosition = {
+    left: markedObject.left + markedObject.width / 2 - 60,
+    top: markedObject.top - 45,
+  };
+  
+  return (
+    <Animated.View 
+      style={[
+        styles.markerContainer, 
+        markerPosition,
+        { transform: [{ scale: pulseAnim }] }
+      ]}
+    >
+      <View style={styles.markerIconContainer}>
+        <FontAwesomeIcon icon={faMapMarkerAlt} size={18} color="#0033A0" />
+      </View>
+      <Text style={styles.markerText}>{markedObject.name}</Text>
+      <TouchableOpacity
+        onPress={() => setMarkedObject(null)}
+        style={styles.removeMarkerButton}
+      >
+        <FontAwesomeIcon icon={faTimes} size={12} color="#666666" />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+```
+
+## Route Pins
+
+Origin and destination markers are displayed during active navigation:
+
+**Location**: `Src/Screens/Home/Components/MapComponent/MapSVG.js:251`
+
+```javascript Pin Rendering
+const renderRoutePins = () => {
+  if (!isRouteActive || activeRoutePoints.length < 2) return null;
+  
+  const origin = activeRoutePoints[0];
+  const destination = activeRoutePoints[activeRoutePoints.length - 1];
+  
+  return (
+    <>
+      {/* Origin Pin */}
+      <View style={[
+        styles.routePin,
+        styles.originPin,
+        { left: origin[0] - 15, top: origin[1] - 20 }
+      ]}>
+        <View style={styles.pinGlow}>
+          <View style={styles.pinContainer}>
+            <FontAwesomeIcon icon={faLocationArrow} size={12} color="#FFFFFF" />
+          </View>
+        </View>
+        <View style={styles.pinLabel}>
+          <Text style={styles.pinLabelText}>Origen</Text>
+        </View>
+      </View>
+
+      {/* Destination Pin */}
+      <View style={[
+        styles.routePin,
+        styles.destinationPin,
+        { left: destination[0] - 17, top: destination[1] - 20 }
+      ]}>
+        <View style={styles.pinGlow}>
+          <View style={[styles.pinContainer, styles.destinationPinContainer]}>
+            <FontAwesomeIcon icon={faFlag} size={12} color="#FFFFFF" />
+          </View>
+        </View>
+        <View style={[styles.pinLabel, styles.destinationLabel]}>
+          <Text style={styles.pinLabelText}>Destino</Text>
+        </View>
+      </View>
+    </>
+  );
+};
+```
+
+## Performance Optimizations
+
+<CardGroup cols={2}>
+  <Card title="Native Driver" icon="gauge-high">
+    All animations use `useNativeDriver: true` for 60 FPS performance
+  </Card>
+  <Card title="Pointer Events" icon="hand">
+    SVG layers use `pointerEvents="none"` to avoid gesture conflicts
+  </Card>
+  <Card title="Conditional Rendering" icon="filter">
+    Route elements only render when `isRouteActive === true`
+  </Card>
+  <Card title="Optimized Re-renders" icon="arrows-rotate">
+    `useRef` for animated values prevents unnecessary re-renders
+  </Card>
+</CardGroup>
+
+## Map Image Assets
+
+The base map is a high-resolution WebP image for optimal performance:
+
+```javascript Map Asset
+const [currentMapImage, setCurrentMapImage] = useState(
+  require("./assets/images/mapa.webp")
+);
+```
+
+**Benefits of WebP format:**
+- 25-35% smaller file size vs PNG
+- Better compression without quality loss
+- Native support in React Native
+- Faster load times on mobile networks
+
+## Integration with Search
+
+The map integrates seamlessly with the search system to display selected locations:
+
+```javascript Point Selection
+const handlePointPress = (pointId) => {
+  const point = points.find(p => p.id === pointId);
+  if (point) {
+    setMarkedObject(point);
+    bottomSheetRef.current?.expand();
+  }
+};
+```
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Navigation System" icon="route" href="/features/navigation-system">
+    Learn about route finding and search functionality
+  </Card>
+  <Card title="AI Chatbot" icon="robot" href="/features/ai-chatbot">
+    Explore the conversational interface for campus queries
+  </Card>
+</CardGroup>

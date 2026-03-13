@@ -1,0 +1,207 @@
+---
+title: 'Development Setup'
+description: 'Set up your development environment for CUCEIUbicate'
+icon: 'wrench'
+---
+
+This guide will help you set up your local development environment for CUCEIUbicate, the CUCEI campus navigation app.
+
+## Prerequisites
+
+Before you begin, ensure you have the following installed:
+
+<Steps>
+  <Step title="Install Node.js">
+    Download and install Node.js (LTS version recommended) from [nodejs.org](https://nodejs.org/)
+    
+    Verify installation:
+    ```bash
+    node --version
+    npm --version
+    ```
+  </Step>
+
+  <Step title="Install Git">
+    Download and install Git from [git-scm.com](https://git-scm.com/)
+    
+    Verify installation:
+    ```bash
+    git --version
+    ```
+  </Step>
+
+  <Step title="Set up Expo CLI">
+    Install Expo CLI globally:
+    ```bash
+    npm install -g expo-cli
+    ```
+  </Step>
+
+  <Step title="Install Development Tools">
+    For mobile development, install:
+    - **Android Studio** (for Android development)
+    - **Xcode** (for iOS development - macOS only)
+    - **Expo Go** app on your mobile device for testing
+  </Step>
+</Steps>
+
+## Installation
+
+<Steps>
+  <Step title="Clone the Repository">
+    Clone the CUCEIUbicate repository to your local machine:
+    ```bash
+    git clone <repository-url>
+    cd CUCEIUbicate
+    ```
+  </Step>
+
+  <Step title="Install Dependencies">
+    Install all project dependencies using npm:
+    ```bash
+    npm install
+    ```
+    
+    <Note>
+      This will install all dependencies listed in `package.json`, including:
+      - React Native (0.76.9)
+      - Expo SDK (^52.0.48)
+      - React Navigation
+      - Supabase client
+      - Google Generative AI
+      - And many more required packages
+    </Note>
+  </Step>
+
+  <Step title="Configure Environment Variables">
+    Create a `.env` file in the root directory with your API keys and configuration:
+    ```bash
+    SUPABASE_URL=your_supabase_url
+    SUPABASE_ANON_KEY=your_supabase_key
+    GOOGLE_AI_API_KEY=your_google_ai_key
+    ```
+    
+    <Warning>
+      Never commit your `.env` file to version control. Ensure it's listed in `.gitignore`.
+    </Warning>
+  </Step>
+</Steps>
+
+## Running the App
+
+CUCEIUbicate uses Expo for development. You can run the app on different platforms using the following commands:
+
+<CodeGroup>
+```bash Start Development Server
+npm start
+```
+
+```bash Android
+npm run android
+```
+
+```bash iOS
+npm run ios
+```
+
+```bash Web
+npm run web
+```
+</CodeGroup>
+
+### Available Scripts
+
+The following scripts are available in `package.json`:
+
+| Script | Command | Description |
+|--------|---------|-------------|
+| `start` | `expo start` | Starts the Expo development server |
+| `android` | `expo start --android` | Starts the app on Android emulator/device |
+| `ios` | `expo start --ios` | Starts the app on iOS simulator/device |
+| `web` | `expo start --web` | Starts the app in web browser |
+
+## Development Workflow
+
+<Steps>
+  <Step title="Start Development Server">
+    Run the development server:
+    ```bash
+    npm start
+    ```
+    
+    This will open the Expo DevTools in your browser and display a QR code in the terminal.
+  </Step>
+
+  <Step title="Run on Device or Emulator">
+    Choose your preferred platform:
+    
+    - **Physical Device**: Scan the QR code with the Expo Go app
+    - **Android Emulator**: Press `a` in the terminal or run `npm run android`
+    - **iOS Simulator**: Press `i` in the terminal or run `npm run ios` (macOS only)
+    - **Web Browser**: Press `w` in the terminal or run `npm run web`
+  </Step>
+
+  <Step title="Live Reload">
+    Changes to your code will automatically reload the app. You can also:
+    - Press `r` to reload the app manually
+    - Press `m` to toggle the menu
+    - Shake your device to open the developer menu
+  </Step>
+</Steps>
+
+## TypeScript Support
+
+CUCEIUbicate is built with TypeScript for improved type safety and developer experience. The project includes:
+
+- TypeScript ^5.6.2
+- Type definitions for React and React Native
+- Type definitions for bcryptjs and other libraries
+
+<Note>
+  TypeScript will automatically check your code for type errors during development. Make sure to follow TypeScript best practices when contributing.
+</Note>
+
+## Troubleshooting
+
+### Common Issues
+
+<AccordionGroup>
+  <Accordion title="Metro bundler won't start">
+    Clear the Metro cache:
+    ```bash
+    npx expo start -c
+    ```
+  </Accordion>
+
+  <Accordion title="Dependencies won't install">
+    Delete `node_modules` and `package-lock.json`, then reinstall:
+    ```bash
+    rm -rf node_modules package-lock.json
+    npm install
+    ```
+  </Accordion>
+
+  <Accordion title="Android build fails">
+    Ensure you have:
+    - Android Studio installed with SDK 24-35
+    - ANDROID_HOME environment variable set
+    - Java Development Kit (JDK) installed
+  </Accordion>
+
+  <Accordion title="iOS build fails">
+    - Ensure you're on macOS
+    - Xcode must be installed from the Mac App Store
+    - Accept Xcode license: `sudo xcodebuild -license`
+  </Accordion>
+</AccordionGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Building" icon="hammer" href="/development/building">
+    Learn how to build the app for production
+  </Card>
+  <Card title="Contributing" icon="code-pull-request" href="/development/contributing">
+    Guidelines for contributing to the project
+  </Card>
+</CardGroup>

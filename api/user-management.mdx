@@ -1,0 +1,693 @@
+---
+title: 'User Management'
+description: 'Manage user profiles and account operations in CUCEIUbicate'
+---
+
+## Overview
+
+The User Management API provides endpoints for creating, reading, updating, and deleting user accounts. All user data is stored in the `CUB_users` table.
+
+## User Data Model
+
+The user object contains the following fields:
+
+<ResponseField name="id" type="number">
+  Primary key, auto-incremented
+</ResponseField>
+
+<ResponseField name="int_user_code" type="number">
+  Student identification code (e.g., 555555555)
+</ResponseField>
+
+<ResponseField name="var_email" type="string">
+  User's email address (unique, lowercase)
+</ResponseField>
+
+<ResponseField name="var_username" type="string">
+  Username (unique, lowercase, 3-30 characters)
+</ResponseField>
+
+<ResponseField name="var_password" type="string">
+  Hashed password (secure hash format)
+</ResponseField>
+
+<ResponseField name="var_name" type="string">
+  User's first name
+</ResponseField>
+
+<ResponseField name="var_lastnames" type="string">
+  User's last name(s)
+</ResponseField>
+
+<ResponseField name="var_degree_code" type="string">
+  University degree program code (uppercase)
+</ResponseField>
+
+## Find User by Email
+
+Search for a user by their email address.
+
+### Endpoint
+
+```http
+GET /CUB_users?var_email={email}
+```
+
+### Parameters
+
+<ParamField query="var_email" type="string" required>
+  Email address to search for (will be normalized to lowercase)
+</ParamField>
+
+### Response
+
+Returns an array of user objects (typically 0 or 1 result).
+
+<CodeGroup>
+
+```typescript TypeScript
+import { findUserByEmail } from './api';
+
+const users = await findUserByEmail('juan.perez@alumnos.udg.mx');
+
+if (users.length > 0) {
+  console.log('User found:', users[0]);
+} else {
+  console.log('No user with that email');
+}
+```
+
+```json Response
+[
+  {
+    "id": 42,
+    "int_user_code": 555555555,
+    "var_email": "juan.perez@alumnos.udg.mx",
+    "var_username": "juanp",
+    "var_password": "$secure$...",
+    "var_name": "Juan",
+    "var_lastnames": "Pérez García",
+    "var_degree_code": "INCO"
+  }
+]
+```
+
+</CodeGroup>
+
+## Find User by Username
+
+Search for a user by their username.
+
+### Endpoint
+
+```http
+GET /CUB_users?var_username={username}
+```
+
+### Parameters
+
+<ParamField query="var_username" type="string" required>
+  Username to search for (will be normalized to lowercase)
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```typescript TypeScript
+import { findUserByUsername } from './api';
+
+const users = await findUserByUsername('juanp');
+
+if (users.length > 0) {
+  const user = users[0];
+  console.log(`Found: ${user.var_name} ${user.var_lastnames}`);
+}
+```
+
+```bash cURL
+curl "https://ilabtdi.com/api_ubicate/index.php/CUB_users?var_username=juanp" \
+  -H "Accept: application/json"
+```
+
+</CodeGroup>
+
+## Find User by Student Code
+
+Search for a user by their student identification code.
+
+### Endpoint
+
+```http
+GET /CUB_users?int_user_code={code}
+```
+
+### Parameters
+
+<ParamField query="int_user_code" type="string | number" required>
+  Student code to search for (only numeric characters)
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```typescript TypeScript
+import { findUserByCode } from './api';
+
+const users = await findUserByCode(555555555);
+
+if (users.length > 0) {
+  console.log('Student found:', users[0].var_name);
+}
+```
+
+```json Response
+[
+  {
+    "id": 42,
+    "int_user_code": 555555555,
+    "var_email": "juan.perez@alumnos.udg.mx",
+    "var_username": "juanp",
+    "var_name": "Juan",
+    "var_lastnames": "Pérez García",
+    "var_degree_code": "INCO"
+  }
+]
+```
+
+</CodeGroup>
+
+## Find User by ID
+
+Retrieve a specific user by their database ID (primary key).
+
+### Endpoint
+
+```http
+GET /CUB_users/{id}
+```
+
+### Parameters
+
+<ParamField path="id" type="number" required>
+  User's database ID (primary key)
+</ParamField>
+
+### Response
+
+Returns a single user object or `null` if not found.
+
+<CodeGroup>
+
+```typescript TypeScript
+import { findUserById } from './api';
+
+const user = await findUserById(42);
+
+if (user) {
+  console.log('User:', user.var_username);
+} else {
+  console.log('User not found');
+}
+```
+
+```json Response
+{
+  "id": 42,
+  "int_user_code": 555555555,
+  "var_email": "juan.perez@alumnos.udg.mx",
+  "var_username": "juanp",
+  "var_name": "Juan",
+  "var_lastnames": "Pérez García",
+  "var_degree_code": "INCO"
+}
+```
+
+</CodeGroup>
+
+## Create User
+
+Create a new user account.
+
+### Endpoint
+
+```http
+POST /CUB_users
+```
+
+### Request Body
+
+<ParamField body="int_user_code" type="number" required>
+  Student identification code
+</ParamField>
+
+<ParamField body="var_email" type="string" required>
+  Email address (must be unique)
+</ParamField>
+
+<ParamField body="var_username" type="string" required>
+  Username (must be unique)
+</ParamField>
+
+<ParamField body="var_password" type="string" required>
+  Password (will be hashed automatically)
+</ParamField>
+
+<ParamField body="var_name" type="string" required>
+  First name
+</ParamField>
+
+<ParamField body="var_lastnames" type="string" required>
+  Last name(s)
+</ParamField>
+
+<ParamField body="var_degree_code" type="string" required>
+  Degree program code
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```typescript TypeScript
+import { createUser } from './api';
+
+const result = await createUser({
+  int_user_code: 555555555,
+  var_email: 'maria.lopez@alumnos.udg.mx',
+  var_username: 'marialop',
+  var_password: 'SecurePass456',
+  var_name: 'María',
+  var_lastnames: 'López Hernández',
+  var_degree_code: 'INCO'
+});
+
+console.log('Created user:', result);
+```
+
+```json Request Body
+{
+  "int_user_code": 555555555,
+  "var_email": "maria.lopez@alumnos.udg.mx",
+  "var_username": "marialop",
+  "var_password": "SecurePass456",
+  "var_name": "María",
+  "var_lastnames": "López Hernández",
+  "var_degree_code": "INCO"
+}
+```
+
+```json Response
+{
+  "id": 43,
+  "success": true
+}
+```
+
+</CodeGroup>
+
+## Update User
+
+Update an existing user's information.
+
+### Endpoint
+
+```http
+PUT /CUB_users/{id}
+```
+
+### Parameters
+
+<ParamField path="id" type="number" required>
+  User's database ID
+</ParamField>
+
+### Request Body
+
+Include only the fields you want to update:
+
+<ParamField body="var_email" type="string">
+  New email address
+</ParamField>
+
+<ParamField body="var_username" type="string">
+  New username
+</ParamField>
+
+<ParamField body="var_name" type="string">
+  New first name
+</ParamField>
+
+<ParamField body="var_lastnames" type="string">
+  New last name(s)
+</ParamField>
+
+<ParamField body="var_degree_code" type="string">
+  New degree program code
+</ParamField>
+
+<ParamField body="int_user_code" type="number">
+  New student code
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```typescript TypeScript
+import { updateUser } from './api';
+
+const success = await updateUser(42, {
+  var_name: 'Juan Carlos',
+  var_degree_code: 'INCE'
+});
+
+if (success) {
+  console.log('User updated successfully');
+}
+```
+
+```json Request Body
+{
+  "var_name": "Juan Carlos",
+  "var_degree_code": "INCE"
+}
+```
+
+```json Response
+{
+  "id": 42,
+  "int_user_code": 555555555,
+  "var_email": "juan.perez@alumnos.udg.mx",
+  "var_username": "juanp",
+  "var_name": "Juan Carlos",
+  "var_lastnames": "Pérez García",
+  "var_degree_code": "INCE"
+}
+```
+
+</CodeGroup>
+
+## Update Password
+
+Update a user's password.
+
+### Implementation
+
+<CodeGroup>
+
+```typescript TypeScript
+import { updateUserPassword } from './api';
+import { secureHash } from './auth';
+
+// Hash the new password before sending
+const newPasswordHash = secureHash('NewSecurePass789');
+
+const success = await updateUserPassword(42, newPasswordHash);
+
+if (success) {
+  console.log('Password updated successfully');
+}
+```
+
+</CodeGroup>
+
+<Warning>
+  Always hash passwords before sending them to the API. Never send plain-text passwords for updates.
+</Warning>
+
+## Get All Users
+
+Retrieve a list of all users (typically for admin purposes).
+
+### Endpoint
+
+```http
+GET /CUB_users?order=var_name&dir=ASC
+```
+
+### Parameters
+
+<ParamField query="order" type="string">
+  Field to sort by (default: `var_name`)
+</ParamField>
+
+<ParamField query="dir" type="string">
+  Sort direction: `ASC` or `DESC` (default: `ASC`)
+</ParamField>
+
+### Example
+
+<CodeGroup>
+
+```typescript TypeScript
+import { getAllUsers } from './api';
+
+const users = await getAllUsers();
+
+console.log(`Total users: ${users.length}`);
+
+users.forEach(user => {
+  console.log(`${user.var_name} ${user.var_lastnames} - ${user.var_email}`);
+});
+```
+
+```json Response
+[
+  {
+    "id": 42,
+    "int_user_code": 555555555,
+    "var_email": "juan.perez@alumnos.udg.mx",
+    "var_username": "juanp",
+    "var_name": "Juan",
+    "var_lastnames": "Pérez García",
+    "var_degree_code": "INCO"
+  },
+  {
+    "id": 43,
+    "int_user_code": 666666666,
+    "var_email": "maria.lopez@alumnos.udg.mx",
+    "var_username": "marialop",
+    "var_name": "María",
+    "var_lastnames": "López Hernández",
+    "var_degree_code": "INCO"
+  }
+]
+```
+
+</CodeGroup>
+
+## Delete User
+
+Permanently remove a user account.
+
+### Endpoint
+
+```http
+DELETE /CUB_users/{id}
+```
+
+### Parameters
+
+<ParamField path="id" type="number" required>
+  User's database ID
+</ParamField>
+
+### Response
+
+<ResponseField name="ok" type="boolean">
+  Whether the deletion was successful
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```typescript TypeScript
+import { deleteUser } from './api';
+
+const success = await deleteUser(42);
+
+if (success) {
+  console.log('User deleted successfully');
+} else {
+  console.error('Failed to delete user');
+}
+```
+
+```json Response
+{
+  "ok": true
+}
+```
+
+</CodeGroup>
+
+<Warning>
+  User deletion is permanent and cannot be undone. Consider implementing a soft delete mechanism for production applications.
+</Warning>
+
+## Input Validation
+
+The API provides built-in validation functions:
+
+### Email Validation
+
+<CodeGroup>
+
+```typescript TypeScript
+import { validateEmail } from './api';
+
+const result = validateEmail('juan.perez@alumnos.udg.mx');
+
+if (result.isValid) {
+  console.log('Valid email');
+} else {
+  console.error('Error:', result.message);
+}
+```
+
+</CodeGroup>
+
+**Validation Rules:**
+- Must match pattern: `^[^\s@]+@[^\s@]+\.[^\s@]+$`
+- Required field
+
+### Username Validation
+
+<CodeGroup>
+
+```typescript TypeScript
+import { validateUsername } from './api';
+
+const result = validateUsername('juanp');
+
+if (result.isValid) {
+  console.log('Valid username');
+} else {
+  console.error('Error:', result.message);
+}
+```
+
+</CodeGroup>
+
+**Validation Rules:**
+- Length: 3-30 characters
+- Allowed characters: `a-z`, `A-Z`, `0-9`, `.`, `-`, `_`
+- Required field
+
+### Password Validation
+
+<CodeGroup>
+
+```typescript TypeScript
+import { validatePassword } from './api';
+
+const result = validatePassword('MySecurePass123');
+
+if (result.isValid) {
+  console.log('Valid password');
+} else {
+  console.error('Error:', result.message);
+}
+```
+
+</CodeGroup>
+
+**Validation Rules:**
+- Length: 6-50 characters
+- Required field
+
+## Data Normalization
+
+All string fields are automatically normalized:
+
+### Normalization Process
+
+1. **NFD Normalization**: Characters are decomposed
+2. **Diacritic Removal**: Accents are stripped (é → e)
+3. **Character Filtering**: Only safe characters allowed
+4. **Trimming**: Whitespace removed from ends
+
+### Example
+
+```typescript
+Input:  "José María"  
+Output: "Jose Maria"
+
+Input:  "  user@email.com  "
+Output: "user@email.com"
+```
+
+### Case Handling
+
+- **Emails**: Always lowercase
+- **Usernames**: Always lowercase  
+- **Degree codes**: Always uppercase
+- **Names**: Preserve original case (after normalization)
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Always validate input before sending">
+    Use the validation functions to check data before making API calls:
+    ```typescript
+    const emailCheck = validateEmail(email);
+    const usernameCheck = validateUsername(username);
+    const passwordCheck = validatePassword(password);
+    
+    if (!emailCheck.isValid) {
+      alert(emailCheck.message);
+      return;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle unique constraint violations">
+    Check for existing users before creating:
+    ```typescript
+    const existing = await findUserByEmail(email);
+    if (existing.length > 0) {
+      alert('Email already registered');
+      return;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Use partial updates">
+    Only include changed fields in update requests:
+    ```typescript
+    // Good - only update what changed
+    await updateUser(userId, { var_name: newName });
+    
+    // Avoid - sending entire object
+    await updateUser(userId, entireUserObject);
+    ```
+  </Accordion>
+  
+  <Accordion title="Secure password handling">
+    - Never log passwords
+    - Always hash before storing
+    - Use secure comparison for verification
+    ```typescript
+    // Good
+    const hash = secureHash(password);
+    await updateUserPassword(userId, hash);
+    
+    // Bad - never do this
+    await updateUser(userId, { var_password: plainPassword });
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/api/authentication">
+    Login and registration flows
+  </Card>
+  <Card title="Campus Data" icon="graduation-cap" href="/api/campus-data">
+    Get degree programs and campus info
+  </Card>
+</CardGroup>

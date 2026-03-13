@@ -1,0 +1,193 @@
+---
+title: 'API Overview'
+description: 'Learn about the CUCEIUbicate REST API architecture and usage'
+---
+
+## Introduction
+
+The CUCEIUbicate API is a RESTful service that powers the mobile campus navigation app for CUCEI university students. It provides endpoints for user authentication, profile management, and campus data retrieval.
+
+## Base URL
+
+All API requests are made to:
+
+```
+https://ilabtdi.com/api_ubicate/index.php
+```
+
+## API Architecture
+
+The API follows RESTful conventions and uses standard HTTP methods:
+
+- **GET**: Retrieve resources
+- **POST**: Create new resources
+- **PUT**: Update existing resources
+- **DELETE**: Remove resources
+
+### Request Format
+
+All requests must include the following headers:
+
+<ParamField header="Content-Type" type="string" required>
+  Must be set to `application/json`
+</ParamField>
+
+<ParamField header="Accept" type="string" required>
+  Must be set to `application/json`
+</ParamField>
+
+### Response Format
+
+API responses are returned in JSON format. The API automatically cleans responses by:
+
+1. Removing any HTML or text before the JSON content
+2. Parsing the clean JSON data
+3. Handling both array and object responses
+
+### Error Handling
+
+The API returns standard HTTP status codes:
+
+- **200**: Success
+- **400**: Bad Request
+- **404**: Not Found
+- **500**: Internal Server Error
+
+Error responses include descriptive messages:
+
+```json
+{
+  "error": "Error message describing what went wrong"
+}
+```
+
+## Data Normalization
+
+The API automatically normalizes string inputs to prevent encoding issues:
+
+- Removes diacritics (accents) from characters
+- Converts text to NFD (Normalized Form Decomposed)
+- Filters out unsafe characters
+- Trims whitespace
+
+This ensures consistent data handling across different platforms and character sets.
+
+## Core Resources
+
+The API provides access to the following resources:
+
+### Users (`/CUB_users`)
+
+Manage user accounts, authentication, and profile information.
+
+<Card title="User Management" icon="user" href="/api/user-management">
+  Create, read, update, and delete user accounts
+</Card>
+
+### Degrees (`/CUB_degrees`)
+
+Retrieve university degree programs and their codes.
+
+<Card title="Campus Data" icon="graduation-cap" href="/api/campus-data">
+  Access campus locations, routes, and degree programs
+</Card>
+
+## Authentication
+
+The API uses a secure custom hashing mechanism for password storage and verification.
+
+<Card title="Authentication" icon="lock" href="/api/authentication">
+  Learn about login and registration endpoints
+</Card>
+
+## Query Parameters
+
+Many endpoints support query parameters for filtering and sorting:
+
+<ParamField query="order" type="string">
+  Field name to sort by (e.g., `var_name`)
+</ParamField>
+
+<ParamField query="dir" type="string">
+  Sort direction: `ASC` or `DESC`
+</ParamField>
+
+### Example
+
+```bash
+GET /CUB_degrees?order=var_name&dir=ASC
+```
+
+## Rate Limiting
+
+Currently, there are no rate limits enforced on the API. However, clients should implement reasonable request throttling to ensure optimal performance.
+
+## Code Example
+
+Here's how to make a basic API request:
+
+<CodeGroup>
+
+```typescript TypeScript
+const BASE_URL = 'https://ilabtdi.com/api_ubicate/index.php';
+
+async function apiRequest(path: string, options: RequestInit = {}) {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Example: Get all degrees
+const degrees = await apiRequest('/CUB_degrees?order=var_name&dir=ASC');
+```
+
+```javascript JavaScript
+const BASE_URL = 'https://ilabtdi.com/api_ubicate/index.php';
+
+async function apiRequest(path, options = {}) {
+  const response = await fetch(`${BASE_URL}${path}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+      ...(options.headers || {})
+    }
+  });
+
+  if (!response.ok) {
+    throw new Error(`HTTP ${response.status}`);
+  }
+
+  return response.json();
+}
+
+// Example: Get all degrees
+const degrees = await apiRequest('/CUB_degrees?order=var_name&dir=ASC');
+```
+
+</CodeGroup>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/api/authentication">
+    Set up user login and registration
+  </Card>
+  <Card title="User Management" icon="user" href="/api/user-management">
+    Manage user profiles and data
+  </Card>
+  <Card title="Campus Data" icon="map" href="/api/campus-data">
+    Access campus locations and degrees
+  </Card>
+</CardGroup>

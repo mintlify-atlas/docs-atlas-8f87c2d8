@@ -1,0 +1,501 @@
+---
+title: 'Navigation & Search System'
+description: 'Advanced route finding, autocomplete search, and search history management'
+icon: 'route'
+---
+
+## Overview
+
+The navigation system provides two complementary search modes: **route search** for point-to-point navigation and **specific search** for finding individual locations. Both feature intelligent autocomplete, search history, and real-time filtering.
+
+<CardGroup cols={2}>
+  <Card title="Route Search" icon="route">
+    Find paths between two campus locations
+  </Card>
+  <Card title="Specific Search" icon="magnifying-glass">
+    Quick location lookup with autocomplete
+  </Card>
+  <Card title="Search History" icon="clock-rotate-left">
+    Persistent history with AsyncStorage
+  </Card>
+  <Card title="Smart Suggestions" icon="wand-magic-sparkles">
+    Real-time filtering across names and aliases
+  </Card>
+</CardGroup>
+
+## Route Search Component
+
+### SearchRoute Interface
+
+The route search modal allows users to plan navigation between two points:
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:22`
+
+```javascript SearchRoute Component
+export const SearchRoute = ({ onClose, onSearch, points }) => {
+  const [originText, setOriginText] = useState("");
+  const [destinationText, setDestinationText] = useState("");
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [originSuggestions, setOriginSuggestions] = useState([]);
+  const [destinationSuggestions, setDestinationSuggestions] = useState([]);
+  const slideAnim = useRef(new Animated.Value(height)).current;
+
+  // Slide animation on mount
+  useEffect(() => {
+    Animated.timing(slideAnim, {
+      toValue: 0,
+      duration: 300,
+      useNativeDriver: true,
+    }).start();
+  }, []);
+
+  return (
+    <Animated.View style={[styles.overlay, { transform: [{ translateY: slideAnim }] }]}>
+      <KeyboardAvoidingView 
+        style={styles.container} 
+        behavior={Platform.OS === "ios" ? "padding" : undefined}
+      >
+        {/* Search interface */}
+      </KeyboardAvoidingView>
+    </Animated.View>
+  );
+};
+```
+
+### Input Fields with Icons
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:199`
+
+```javascript Input Fields
+<View style={styles.searchBar}>
+  <View style={styles.header}>
+    <Text style={styles.headerTitle}>Buscar Ruta</Text>
+    <TouchableOpacity onPress={handleClose} style={styles.closeButton}>
+      <FontAwesomeIcon icon={faTimes} size={24} color="#FFFFFF" />
+    </TouchableOpacity>
+  </View>
+  
+  {/* Origin Input */}
+  <View style={styles.inputContainer}>
+    <FontAwesomeIcon icon={faArrowUp} size={20} color="#0033A0" />
+    <TextInput
+      style={styles.input}
+      placeholder="Origen:"
+      placeholderTextColor={"#888888"}
+      value={originText}
+      onChangeText={handleOriginChange}
+    />
+  </View>
+  
+  {/* Destination Input */}
+  <View style={styles.inputContainer}>
+    <FontAwesomeIcon icon={faMapMarkerAlt} size={20} color="#0033A0" />
+    <TextInput
+      style={styles.input}
+      placeholder="Destino:"
+      placeholderTextColor={"#888888"}
+      value={destinationText}
+      onChangeText={handleDestinationChange}
+    />
+  </View>
+</View>
+```
+
+## Autocomplete System
+
+### Real-Time Suggestion Filtering
+
+The system filters building data based on names, IDs, and aliases:
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:143`
+
+```javascript Autocomplete Logic
+const handleInputChange = (text, isOrigin) => {
+  if (isOrigin) {
+    setOriginText(text);
+  } else {
+    setDestinationText(text);
+  }
+
+  if (text.trim().length > 0) {
+    const suggestions = points
+      .filter(point => 
+        point.name.toLowerCase().startsWith(text.toLowerCase()) || 
+        point.id.toLowerCase().includes(text.toLowerCase()) || 
+        (point.aliases && point.aliases.some(alias => 
+          alias.toLowerCase().includes(text.toLowerCase())
+        ))
+      )
+      .map(point => point.name);
+
+    if (isOrigin) {
+      setOriginSuggestions(suggestions);
+    } else {
+      setDestinationSuggestions(suggestions);
+    }
+  } else {
+    if (isOrigin) {
+      setOriginSuggestions([]);
+    } else {
+      setDestinationSuggestions([]);
+    }
+  }
+};
+```
+
+### Suggestion Display
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:217`
+
+```javascript Suggestion List
+{originSuggestions.length > 0 && (
+  <FlatList
+    data={originSuggestions}
+    renderItem={({ item }) => (
+      <TouchableOpacity
+        style={styles.suggestionItem}
+        onPress={() => selectSuggestion(item, true)}
+      >
+        <Text>{item}</Text>
+      </TouchableOpacity>
+    )}
+    keyExtractor={(item) => item}
+    style={styles.suggestionList}
+  />
+)}
+```
+
+<Note>
+The autocomplete searches across three data sources:
+1. Building names (e.g., "Biblioteca")
+2. Building IDs (e.g., "Modulo A")
+3. Aliases (e.g., "biblioteca", "becas", "internacionalizacion")
+</Note>
+
+## Search History Management
+
+### Persistent Storage
+
+Search history is saved using AsyncStorage for persistence across app sessions:
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:50`
+
+```javascript Load History
+useEffect(() => {
+  const loadSearchHistory = async () => {
+    try {
+      const savedHistory = await AsyncStorage.getItem("searchHistory");
+      if (savedHistory) {
+        setSearchHistory(JSON.parse(savedHistory));
+      }
+    } catch (error) {
+      console.error("Error al cargar el historial de búsqueda:", error);
+    }
+  };
+
+  loadSearchHistory();
+}, []);
+```
+
+### Update History on Search
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:90`
+
+```javascript Update History
+const search = { origin: originText.trim(), destination: destinationText.trim() };
+try {
+  setSearchHistory((prevHistory) => {
+    const newHistory = [
+      search,
+      ...prevHistory.filter((item) => JSON.stringify(item) !== JSON.stringify(search)), 
+    ];
+    AsyncStorage.setItem("searchHistory", JSON.stringify(newHistory));
+    return newHistory;
+  });
+} catch (error) {
+  console.error("Error al actualizar el historial de búsqueda:", error);
+}
+```
+
+### History Display
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:268`
+
+```javascript History UI
+<View style={styles.searchHistoryContainer}>
+  <Text style={styles.searchHistoryTitle}>Historial de Búsqueda</Text>
+  <ScrollView style={styles.searchHistoryList}>
+    {searchHistory.map((item, index) => (
+      <TouchableOpacity
+        key={index}
+        style={styles.searchHistoryItem}
+        onPress={() => selectSearchFromHistory(item)}
+      >
+        <Text style={styles.searchHistoryText}>
+          {item.origin} - {item.destination}
+        </Text>
+        <TouchableOpacity onPress={() => removeSearchItem(item)}>
+          <FontAwesomeIcon icon={faTimes} size={18} color="#ff6347" />
+        </TouchableOpacity>
+      </TouchableOpacity>
+    ))}
+  </ScrollView>
+  {searchHistory.length > 0 && (
+    <TouchableOpacity style={styles.clearHistoryButton} onPress={clearSearchHistory}>
+      <FontAwesomeIcon icon={faTrash} size={18} color="#FFFFFF" />
+      <Text style={styles.clearHistoryButtonText}>Limpiar Historial</Text>
+    </TouchableOpacity>
+  )}
+</View>
+```
+
+## Route Validation
+
+### Input Validation
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:66`
+
+```javascript Validation Logic
+const handleSearch = async () => {
+  // Check for empty fields
+  if (originText.trim() === "" || destinationText.trim() === "") {
+    Alert.alert("Error", "Por favor, complete ambos campos de búsqueda.");
+    return;
+  }
+
+  // Verify origin and destination exist
+  const originExists = points.some(point => 
+    new RegExp(`^${originText.trim()}$`, 'i').test(point.name)
+  );
+  const destinationExists = points.some(point => 
+    new RegExp(`^${destinationText.trim()}$`, 'i').test(point.name)
+  );
+
+  if (!originExists || !destinationExists) {
+    Alert.alert(
+      "Error", 
+      "El origen o destino no existen en el mapa. Por favor, verifique los nombres."
+    );
+    return;
+  }
+
+  // Execute search
+  const searchKey = `${originText.trim()} - ${destinationText.trim()}`;
+  const reverseSearchKey = `${destinationText.trim()} - ${originText.trim()}`;
+  onSearch({ searchKey, reverseSearchKey });
+};
+```
+
+## Specific Search Component
+
+### Advanced Search Interface
+
+The specific search provides a streamlined interface for finding single locations:
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchSpecific.js:153`
+
+```javascript SpecificSearch Component
+export const SpecificSearch = ({ onSearch, points, setShowSpecificSearch }) => {
+  const [showSpecificSearchState, setShowSpecificSearchState] = useState(false);
+  const [specificSearchText, setSpecificSearchText] = useState("");
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchHistory, setSearchHistory] = useState([]);
+  const [showHistory, setShowHistory] = useState(false);
+  const [error, setError] = useState("");
+  
+  const animatedWidth = useRef(new Animated.Value(0)).current;
+  const animatedOpacity = useRef(new Animated.Value(0)).current;
+  const inputRef = useRef(null);
+
+  return (
+    <View style={styles.container}>
+      <TouchableOpacity
+        style={styles.search_icon}
+        onPress={toggleSpecificSearch}
+      >
+        <FontAwesomeIcon
+          icon={faSearch}
+          size={isTablet ? width * 0.04 : width * 0.06}
+          color="#FFFFFF"
+        />
+      </TouchableOpacity>
+      {/* Animated search bar */}
+    </View>
+  );
+};
+```
+
+### Animated Expansion
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchSpecific.js:192`
+
+```javascript Animation Logic
+const openSearch = () => {
+  setShowSpecificSearchState(true);
+  Animated.parallel([
+    Animated.timing(animatedWidth, {
+      toValue: 1,
+      duration: 300,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: false,
+    }),
+    Animated.timing(animatedOpacity, {
+      toValue: 1,
+      duration: 300,
+      useNativeDriver: false,
+    }),
+  ]).start();
+};
+```
+
+### Category-Based Icons
+
+Search results display contextual icons based on building type:
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchSpecific.js:64`
+
+```javascript Icon Mapping
+const normalize = (s = "") =>
+  s.normalize("NFD").replace(/[\u0300-\u036f]/g, "").toLowerCase();
+
+const iconMap = [
+  { keys: ["modulo", "edificio"], icon: faBuilding },
+  { keys: ["biblioteca"], icon: faBook },
+  { keys: ["entrada", "acceso"], icon: faDoorOpen },
+  { keys: ["comida", "restaurante", "globo", "cafeteria"], icon: faUtensils },
+  { keys: ["cafe", "starbucks", "flor de cordoba"], icon: faCoffee },
+  { keys: ["estacionamiento", "parking"], icon: faParking },
+  { keys: ["laboratorio", "lab"], icon: faFlask },
+  // ... more categories
+];
+
+const getIconForCategoryFromText = (text = "") => {
+  const t = normalize(text);
+  return (
+    iconMap.find(({ keys }) => keys.some((k) => t.includes(k)))?.icon ||
+    faSearch
+  );
+};
+```
+
+### Color-Coded Results
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchSpecific.js:145`
+
+```javascript Color Mapping
+const colorMap = [
+  { keys: ["modulo"], color: "#1E40AF" },
+  { keys: ["edificio"], color: "#374151" },
+  { keys: ["biblioteca"], color: "#7C3AED" },
+  { keys: ["entrada", "acceso"], color: "#059669" },
+  { keys: ["comida", "restaurante"], color: "#EA580C" },
+  // ... more color mappings
+];
+
+const getColorForCategory = (text = "") => {
+  const t = normalize(text);
+  return (
+    colorMap.find(({ keys }) => keys.some((k) => t.includes(k)))?.color ||
+    "#0033A0"
+  );
+};
+```
+
+### Result Rendering
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchSpecific.js:275`
+
+```javascript Result Item
+const renderSearchResult = ({ item }) => {
+  const itemColor = getColorForCategory(item.name);
+  return (
+    <TouchableOpacity
+      style={styles.resultItem}
+      onPress={() => handleSelectResult(item)}
+      activeOpacity={0.8}
+    >
+      <View style={[
+        styles.resultIcon,
+        {
+          backgroundColor: `${itemColor}18`,
+          borderWidth: 1,
+          borderColor: `${itemColor}25`,
+        }
+      ]}>
+        <FontAwesomeIcon
+          icon={getIconForCategoryFromText(item.name)}
+          size={isTablet ? 20 : 16}
+          color={itemColor}
+        />
+      </View>
+      <Text style={styles.resultText}>{item.name}</Text>
+    </TouchableOpacity>
+  );
+};
+```
+
+## Swap Locations Feature
+
+Quickly reverse origin and destination:
+
+**Location**: `Src/Screens/Home/Components/SearchBarsComponent/SearchRoute.js:138`
+
+```javascript Swap Function
+const swapLocations = () => {
+  setOriginText(destinationText);
+  setDestinationText(originText);
+};
+
+// UI Button
+<TouchableOpacity style={styles.iconButton} onPress={swapLocations}>
+  <FontAwesomeIcon icon={faExchangeAlt} size={20} color="#FFFFFF" />
+</TouchableOpacity>
+```
+
+## Performance Optimizations
+
+<CardGroup cols={2}>
+  <Card title="Debounced Search" icon="clock">
+    Input filtering happens on every keystroke without lag
+  </Card>
+  <Card title="FlatList Rendering" icon="list">
+    Efficient virtualized lists for long suggestion results
+  </Card>
+  <Card title="Memoized Filters" icon="filter">
+    Filter functions only re-run when input text changes
+  </Card>
+  <Card title="Async Storage" icon="database">
+    Non-blocking history persistence in background
+  </Card>
+</CardGroup>
+
+## Accessibility Features
+
+<Tabs>
+  <Tab title="Keyboard Handling">
+    - `KeyboardAvoidingView` prevents input obstruction
+    - `keyboardShouldPersistTaps="handled"` for tap-through
+    - Return key submits search on both iOS and Android
+  </Tab>
+  <Tab title="Visual Feedback">
+    - Real-time suggestion updates
+    - Error messages with clear icons
+    - Active state indicators on buttons
+  </Tab>
+  <Tab title="Touch Targets">
+    - Minimum 44x44 pt touch areas
+    - Clear visual separation between items
+    - Haptic-like feedback with opacity changes
+  </Tab>
+</Tabs>
+
+## Next Steps
+
+<CardGroup cols={2}>
+  <Card title="Interactive Map" icon="map" href="/features/interactive-map">
+    See how routes are visualized on the map
+  </Card>
+  <Card title="AI Chatbot" icon="robot" href="/features/ai-chatbot">
+    Natural language alternative to search
+  </Card>
+</CardGroup>

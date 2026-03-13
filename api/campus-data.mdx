@@ -1,0 +1,571 @@
+---
+title: 'Campus Data'
+description: 'Access campus locations, routes, services, and degree programs'
+---
+
+## Overview
+
+The Campus Data API provides access to university-specific information including degree programs, campus locations, navigation routes, and services available to students.
+
+## Degree Programs
+
+Retrieve the list of available degree programs at CUCEI.
+
+### Endpoint
+
+```http
+GET /CUB_degrees?order=var_name&dir=ASC
+```
+
+### Parameters
+
+<ParamField query="order" type="string">
+  Field to sort by (default: `var_name`)
+</ParamField>
+
+<ParamField query="dir" type="string">
+  Sort direction: `ASC` or `DESC` (default: `ASC`)
+</ParamField>
+
+### Response
+
+Returns an array of degree objects:
+
+<ResponseField name="var_code" type="string">
+  Unique degree program code (primary key)
+</ResponseField>
+
+<ResponseField name="var_name" type="string">
+  Full name of the degree program
+</ResponseField>
+
+### Example
+
+<CodeGroup>
+
+```typescript TypeScript
+import { listDegrees } from './api';
+
+const degrees = await listDegrees();
+
+degrees.forEach(degree => {
+  console.log(`${degree.var_code}: ${degree.var_name}`);
+});
+```
+
+```typescript UI Helper
+import { get_degrees } from './consultas';
+
+// Returns degrees in UI-friendly format
+const degrees = await get_degrees();
+
+// Returns: [{ name: "Ingeniería en Computación", code: "INCO" }, ...]
+degrees.forEach(degree => {
+  console.log(`${degree.code}: ${degree.name}`);
+});
+```
+
+```json Response
+[
+  {
+    "var_code": "INCO",
+    "var_name": "Ingeniería en Computación"
+  },
+  {
+    "var_code": "INCE",
+    "var_name": "Ingeniería Civil"
+  },
+  {
+    "var_code": "INEL",
+    "var_name": "Ingeniería Electrónica"
+  },
+  {
+    "var_code": "INQU",
+    "var_name": "Ingeniería Química"
+  },
+  {
+    "var_code": "INME",
+    "var_name": "Ingeniería Mecánica"
+  }
+]
+```
+
+</CodeGroup>
+
+## Get Degrees Helper
+
+A convenience function that maps degree data to a UI-friendly format.
+
+### Implementation
+
+<CodeGroup>
+
+```typescript TypeScript
+import { get_degrees } from './consultas';
+
+const degrees = await get_degrees();
+
+// Use in a dropdown/picker
+const degreeOptions = degrees.map(d => ({
+  label: d.name,
+  value: d.code
+}));
+```
+
+```jsx React Native
+import { get_degrees } from './api/consultas';
+import { Picker } from '@react-native-picker/picker';
+
+function DegreeSelector() {
+  const [degrees, setDegrees] = useState([]);
+  const [selected, setSelected] = useState('');
+  
+  useEffect(() => {
+    get_degrees().then(setDegrees);
+  }, []);
+  
+  return (
+    <Picker selectedValue={selected} onValueChange={setSelected}>
+      <Picker.Item label="Selecciona tu carrera" value="" />
+      {degrees.map(d => (
+        <Picker.Item key={d.code} label={d.name} value={d.code} />
+      ))}
+    </Picker>
+  );
+}
+```
+
+</CodeGroup>
+
+### Response Format
+
+<ResponseField name="name" type="string">
+  Display name of the degree program
+</ResponseField>
+
+<ResponseField name="code" type="string">
+  Unique code identifier
+</ResponseField>
+
+## Fetch JSON Data
+
+Generic utility for fetching JSON data from external sources.
+
+### Implementation
+
+The `getJsons` function provides a simple way to fetch and parse JSON data:
+
+<CodeGroup>
+
+```javascript JavaScript
+import { getJsons } from './fetchJsons';
+
+// Fetch campus locations
+const locations = await getJsons('https://example.com/api/locations.json');
+
+console.log('Campus buildings:', locations);
+```
+
+```typescript TypeScript
+export const getJsons = (url: string): Promise<any> => {
+  return fetch(url)
+    .then(response => response.json())
+    .then(json => json)
+    .catch(error => {
+      console.error('Error fetching JSON:', error);
+      throw error;
+    });
+};
+```
+
+</CodeGroup>
+
+### Use Cases
+
+<Tabs>
+  <Tab title="Campus Locations">
+    ```typescript
+    // Fetch building locations
+    const buildings = await getJsons(
+      'https://api.cucei.udg.mx/locations/buildings.json'
+    );
+    
+    // Display on map
+    buildings.forEach(building => {
+      addMarker(building.lat, building.lng, building.name);
+    });
+    ```
+  </Tab>
+  
+  <Tab title="Navigation Routes">
+    ```typescript
+    // Fetch walking routes between buildings
+    const routes = await getJsons(
+      'https://api.cucei.udg.mx/routes/walking.json'
+    );
+    
+    // Calculate path
+    const path = findRoute(routes, 'BUILDING_A', 'BUILDING_B');
+    ```
+  </Tab>
+  
+  <Tab title="Campus Services">
+    ```typescript
+    // Fetch available services
+    const services = await getJsons(
+      'https://api.cucei.udg.mx/services/list.json'
+    );
+    
+    // Display services
+    services.forEach(service => {
+      console.log(`${service.name}: ${service.location}`);
+    });
+    ```
+  </Tab>
+</Tabs>
+
+## Common Degree Codes
+
+Reference table of common CUCEI degree programs:
+
+<Tabs>
+  <Tab title="Engineering">
+    | Code | Program Name |
+    |------|-------------|
+    | INCO | Ingeniería en Computación |
+    | INCE | Ingeniería Civil |
+    | INEL | Ingeniería Electrónica |
+    | INME | Ingeniería Mecánica |
+    | INQU | Ingeniería Química |
+    | ININ | Ingeniería Industrial |
+  </Tab>
+  
+  <Tab title="Sciences">
+    | Code | Program Name |
+    |------|-------------|
+    | LMAT | Licenciatura en Matemáticas |
+    | LFIS | Licenciatura en Física |
+    | LQUI | Licenciatura en Química |
+  </Tab>
+</Tabs>
+
+<Note>
+  Degree codes are always stored and returned in uppercase format.
+</Note>
+
+## Data Structures
+
+### Degree Object
+
+```typescript
+interface DegreeRow {
+  var_code: string;   // Primary key: "INCO"
+  var_name: string;   // Display name: "Ingeniería en Computación"
+}
+```
+
+### UI-Friendly Degree Object
+
+```typescript
+interface DegreeMapped {
+  code: string;   // "INCO"
+  name: string;   // "Ingeniería en Computación"
+}
+```
+
+## Integration Examples
+
+### Registration Form with Degrees
+
+<CodeGroup>
+
+```typescript TypeScript
+import { get_degrees } from './api/consultas';
+import { registerUser } from './api/register';
+
+async function registerWithDegree(
+  email: string,
+  username: string,
+  password: string,
+  name: string,
+  lastnames: string,
+  degreeCode: string
+) {
+  // Fetch available degrees for validation
+  const degrees = await get_degrees();
+  const validDegree = degrees.find(d => d.code === degreeCode);
+  
+  if (!validDegree) {
+    throw new Error('Invalid degree code');
+  }
+  
+  // Register user with validated degree
+  const result = await registerUser({
+    email,
+    username,
+    password,
+    name,
+    lastnames,
+    degree_code: degreeCode
+  });
+  
+  return result;
+}
+```
+
+```jsx React Component
+import { useState, useEffect } from 'react';
+import { get_degrees } from './api/consultas';
+
+function RegistrationForm() {
+  const [degrees, setDegrees] = useState([]);
+  const [formData, setFormData] = useState({
+    email: '',
+    username: '',
+    password: '',
+    name: '',
+    lastnames: '',
+    degree_code: ''
+  });
+  
+  useEffect(() => {
+    // Load degrees on mount
+    get_degrees().then(setDegrees);
+  }, []);
+  
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    // Submit registration with selected degree
+    const result = await registerUser(formData);
+    
+    if (result.success) {
+      alert('Registration successful!');
+    }
+  };
+  
+  return (
+    <form onSubmit={handleSubmit}>
+      {/* Other form fields... */}
+      
+      <select 
+        value={formData.degree_code}
+        onChange={(e) => setFormData({
+          ...formData,
+          degree_code: e.target.value
+        })}
+      >
+        <option value="">Select your degree</option>
+        {degrees.map(d => (
+          <option key={d.code} value={d.code}>
+            {d.name}
+          </option>
+        ))}
+      </select>
+      
+      <button type="submit">Register</button>
+    </form>
+  );
+}
+```
+
+</CodeGroup>
+
+### Display User's Degree
+
+<CodeGroup>
+
+```typescript TypeScript
+import { findUserById } from './api';
+import { listDegrees } from './api';
+
+async function getUserWithDegree(userId: number) {
+  const user = await findUserById(userId);
+  const degrees = await listDegrees();
+  
+  const degree = degrees.find(d => d.var_code === user.var_degree_code);
+  
+  return {
+    ...user,
+    degree: degree ? degree.var_name : 'Unknown'
+  };
+}
+
+// Usage
+const userData = await getUserWithDegree(42);
+console.log(`${userData.var_name} estudia ${userData.degree}`);
+// Output: "Juan estudia Ingeniería en Computación"
+```
+
+</CodeGroup>
+
+## Error Handling
+
+### Degree Not Found
+
+<CodeGroup>
+
+```typescript TypeScript
+import { get_degrees } from './api/consultas';
+
+try {
+  const degrees = await get_degrees();
+  
+  if (degrees.length === 0) {
+    console.warn('No degrees available');
+    // Show fallback UI
+  }
+} catch (error) {
+  console.error('Error loading degrees:', error);
+  // Show error message to user
+}
+```
+
+</CodeGroup>
+
+### Invalid Degree Code
+
+<CodeGroup>
+
+```typescript TypeScript
+function validateDegreeCode(code: string, degrees: DegreeMapped[]): boolean {
+  const validCodes = degrees.map(d => d.code);
+  
+  if (!validCodes.includes(code)) {
+    console.error(`Invalid degree code: ${code}`);
+    console.log('Valid codes:', validCodes.join(', '));
+    return false;
+  }
+  
+  return true;
+}
+```
+
+</CodeGroup>
+
+## Caching Strategy
+
+Degree programs rarely change, so implement caching:
+
+<CodeGroup>
+
+```typescript TypeScript
+let cachedDegrees: DegreeMapped[] | null = null;
+let cacheTimestamp: number = 0;
+const CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 hours
+
+async function getDegreesWithCache(): Promise<DegreeMapped[]> {
+  const now = Date.now();
+  
+  // Return cached data if still valid
+  if (cachedDegrees && (now - cacheTimestamp) < CACHE_DURATION) {
+    console.log('Returning cached degrees');
+    return cachedDegrees;
+  }
+  
+  // Fetch fresh data
+  console.log('Fetching fresh degree data');
+  const degrees = await get_degrees();
+  
+  // Update cache
+  cachedDegrees = degrees;
+  cacheTimestamp = now;
+  
+  return degrees;
+}
+```
+
+```typescript AsyncStorage (React Native)
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { get_degrees } from './api/consultas';
+
+const DEGREES_CACHE_KEY = 'cached_degrees';
+const CACHE_DURATION = 24 * 60 * 60 * 1000;
+
+async function getDegreesWithStorage() {
+  try {
+    // Check cache
+    const cached = await AsyncStorage.getItem(DEGREES_CACHE_KEY);
+    
+    if (cached) {
+      const { data, timestamp } = JSON.parse(cached);
+      
+      if (Date.now() - timestamp < CACHE_DURATION) {
+        return data;
+      }
+    }
+    
+    // Fetch fresh data
+    const degrees = await get_degrees();
+    
+    // Store in cache
+    await AsyncStorage.setItem(DEGREES_CACHE_KEY, JSON.stringify({
+      data: degrees,
+      timestamp: Date.now()
+    }));
+    
+    return degrees;
+  } catch (error) {
+    console.error('Cache error:', error);
+    // Fallback to direct fetch
+    return get_degrees();
+  }
+}
+```
+
+</CodeGroup>
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Cache degree data locally">
+    Degree programs don't change frequently, so cache them:
+    - Reduces API calls
+    - Improves app performance
+    - Works offline
+    
+    Refresh cache every 24 hours or on app update.
+  </Accordion>
+  
+  <Accordion title="Validate degree codes before submission">
+    Always validate user-selected degree codes:
+    ```typescript
+    const degrees = await get_degrees();
+    const isValid = degrees.some(d => d.code === selectedCode);
+    
+    if (!isValid) {
+      alert('Please select a valid degree program');
+      return;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Provide user-friendly degree names">
+    Display full degree names in UI, use codes for API:
+    ```typescript
+    // Good: Show full name
+    <option value="INCO">Ingeniería en Computación</option>
+    
+    // Avoid: Showing only code
+    <option value="INCO">INCO</option>
+    ```
+  </Accordion>
+  
+  <Accordion title="Handle missing or invalid degrees gracefully">
+    If a user has an invalid degree code:
+    ```typescript
+    const degreeName = degrees.find(d => d.code === user.var_degree_code)?.name 
+      || 'Degree not found';
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Endpoints
+
+<CardGroup cols={2}>
+  <Card title="Authentication" icon="lock" href="/api/authentication">
+    Use degree codes during registration
+  </Card>
+  <Card title="User Management" icon="user" href="/api/user-management">
+    Update user's degree program
+  </Card>
+</CardGroup>

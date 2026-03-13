@@ -1,0 +1,379 @@
+---
+title: 'Authentication'
+description: 'User login and registration endpoints for CUCEIUbicate'
+---
+
+## Overview
+
+CUCEIUbicate uses a custom secure hashing mechanism for password management. All passwords are hashed using a multi-pass algorithm with a static salt and timestamp-based entropy.
+
+## Password Security
+
+The authentication system implements:
+
+- **Multi-pass hashing**: Three separate hash passes for enhanced security
+- **Static salt**: `CUCEI_UBICATE_2024_PRODUCTION_SECURE_SALT_V2`
+- **Timestamp entropy**: Adds uniqueness to each hash
+- **String normalization**: Prevents encoding-related authentication issues
+
+### Hash Format
+
+```
+$secure$[hash1]$[hash2]$[hash3]$[timestamp]
+```
+
+Example:
+```
+$secure$0a1b2c3d$4e5f6g7h$9i0j1k$abc123
+```
+
+## User Registration
+
+Create a new user account with validated credentials.
+
+### Endpoint
+
+```http
+POST /CUB_users
+```
+
+### Request Body
+
+<ParamField body="var_email" type="string" required>
+  User's email address (must be unique and valid format)
+</ParamField>
+
+<ParamField body="var_username" type="string" required>
+  Username (3-30 characters, alphanumeric with `.`, `-`, `_`)
+</ParamField>
+
+<ParamField body="var_password" type="string" required>
+  Password (6-50 characters, will be hashed automatically)
+</ParamField>
+
+<ParamField body="var_name" type="string" required>
+  User's first name
+</ParamField>
+
+<ParamField body="var_lastnames" type="string" required>
+  User's last name(s)
+</ParamField>
+
+<ParamField body="var_degree_code" type="string" required>
+  University degree program code (uppercase)
+</ParamField>
+
+### Response
+
+<ResponseField name="id" type="number">
+  The newly created user's unique identifier
+</ResponseField>
+
+<ResponseField name="success" type="boolean">
+  Indicates if registration was successful
+</ResponseField>
+
+### Validation Rules
+
+#### Email Validation
+- Must match pattern: `^[^\s@]+@[^\s@]+\.[^\s@]+$`
+- Must be unique in the system
+- Automatically converted to lowercase
+
+#### Username Validation
+- Minimum length: 3 characters
+- Maximum length: 30 characters
+- Allowed characters: `a-z`, `A-Z`, `0-9`, `.`, `-`, `_`
+- Must be unique in the system
+- Automatically converted to lowercase
+
+#### Password Validation
+- Minimum length: 6 characters
+- Maximum length: 50 characters (before hashing)
+- Stored as secure hash (not reversible)
+
+### Example Request
+
+<CodeGroup>
+
+```typescript TypeScript
+import { registerUser } from './api';
+
+const result = await registerUser({
+  email: 'juan.perez@alumnos.udg.mx',
+  username: 'juanp',
+  password: 'MySecurePass123',
+  name: 'Juan',
+  lastnames: 'Pérez García',
+  degree_code: 'INCO'
+});
+
+if (result.success) {
+  console.log('User ID:', result.userId);
+} else {
+  console.error('Error:', result.message);
+}
+```
+
+```json Request Body
+{
+  "var_email": "juan.perez@alumnos.udg.mx",
+  "var_username": "juanp",
+  "var_password": "MySecurePass123",
+  "var_name": "Juan",
+  "var_lastnames": "Pérez García",
+  "var_degree_code": "INCO"
+}
+```
+
+```json Success Response
+{
+  "id": 42,
+  "success": true
+}
+```
+
+```json Error Response
+{
+  "success": false,
+  "message": "El email ya está registrado"
+}
+```
+
+</CodeGroup>
+
+## User Login
+
+Authenticate a user with email/username and password.
+
+### Authentication Method
+
+The login system accepts either:
+- Email address
+- Username
+
+Both are normalized to lowercase for comparison.
+
+### Login Process
+
+1. **Input normalization**: Remove diacritics and convert to lowercase
+2. **User lookup**: Search by email first, then by username
+3. **Password verification**: Compare using secure hash algorithm
+4. **Session data**: Return complete user profile on success
+
+### Implementation
+
+<CodeGroup>
+
+```typescript TypeScript
+import { login } from './api';
+
+const result = await login(
+  'juan.perez@alumnos.udg.mx',  // email or username
+  'MySecurePass123'              // password
+);
+
+if (result && result.isMatch) {
+  console.log('Login successful!');
+  console.log('User data:', result.userData);
+  
+  // Access user information
+  const { id, email, username, name, student_code } = result.userData;
+} else {
+  console.error('Invalid credentials');
+}
+```
+
+```javascript JavaScript
+import { login } from './api';
+
+const result = await login('juanp', 'MySecurePass123');
+
+if (result && result.isMatch) {
+  console.log('Welcome,', result.userData.name);
+} else {
+  alert('Invalid username or password');
+}
+```
+
+</CodeGroup>
+
+### Login Response
+
+<ResponseField name="isMatch" type="boolean">
+  Whether the credentials are valid
+</ResponseField>
+
+<ResponseField name="userData" type="object">
+  Complete user profile information
+  
+  <Expandable title="properties">
+    <ResponseField name="id" type="number">
+      User's unique database ID
+    </ResponseField>
+    
+    <ResponseField name="email" type="string">
+      User's email address
+    </ResponseField>
+    
+    <ResponseField name="username" type="string">
+      User's username
+    </ResponseField>
+    
+    <ResponseField name="name" type="string">
+      User's first name
+    </ResponseField>
+    
+    <ResponseField name="lastnames" type="string">
+      User's last name(s)
+    </ResponseField>
+    
+    <ResponseField name="degree_code" type="string">
+      University degree program code
+    </ResponseField>
+    
+    <ResponseField name="student_code" type="string | number">
+      Student identification code. Special values:
+      - `"No asignado"`: Not assigned
+      - `"Código pendiente"`: Code is 0
+      - `"No válido"`: Empty string
+      - `number`: Valid student code
+    </ResponseField>
+    
+    <ResponseField name="code" type="string | number">
+      Alias for student_code
+    </ResponseField>
+    
+    <ResponseField name="user_code" type="string | number">
+      Alias for student_code
+    </ResponseField>
+  </Expandable>
+</ResponseField>
+
+### Example Response
+
+<CodeGroup>
+
+```json Success
+{
+  "isMatch": true,
+  "userData": {
+    "id": 42,
+    "email": "juan.perez@alumnos.udg.mx",
+    "username": "juanp",
+    "name": "Juan",
+    "lastnames": "Pérez García",
+    "degree_code": "INCO",
+    "student_code": 555555555,
+    "code": 555555555,
+    "user_code": 555555555,
+    "codigo": 555555555
+  }
+}
+```
+
+```json Failure
+{
+  "isMatch": false,
+  "userData": null
+}
+```
+
+</CodeGroup>
+
+## Password Hashing
+
+Understanding the secure hash implementation:
+
+### Hash Generation
+
+```typescript
+function secureHash(password: string): string {
+  const staticSalt = 'CUCEI_UBICATE_2024_PRODUCTION_SECURE_SALT_V2';
+  const timestamp = Date.now().toString(36).slice(-6);
+  const combined = password + staticSalt + timestamp;
+  
+  // Three separate hash passes with different algorithms
+  let hash1 = multiPassHash(combined, 5);  // Shift left 5
+  let hash2 = multiPassHash(combined, 3);  // Shift left 3
+  let hash3 = multiPassHash(password + staticSalt, 7);  // Shift left 7
+  
+  return `$secure$${hash1}$${hash2}$${hash3}$${timestamp}`;
+}
+```
+
+### Hash Verification
+
+Verification recreates the hash using the stored timestamp:
+
+```typescript
+function secureCompare(password: string, hashedPassword: string): boolean {
+  // Extract timestamp from stored hash
+  const parts = hashedPassword.split('$');
+  const [, , hash1Stored, hash2Stored, hash3Stored, timestamp] = parts;
+  
+  // Recreate hash with same timestamp
+  const newHash = secureHashWithTimestamp(password, timestamp);
+  
+  // Compare all components
+  return newHash === hashedPassword;
+}
+```
+
+## Error Messages
+
+Common authentication error messages:
+
+| Error | Meaning |
+|-------|--------|
+| `El email ya está registrado` | Email already exists in database |
+| `El nombre de usuario ya está en uso` | Username is taken |
+| `La contraseña debe tener al menos 6 caracteres` | Password too short |
+| `Formato de email inválido` | Email format is invalid |
+| `El nombre de usuario debe tener al menos 3 caracteres` | Username too short |
+| `Usuario o contraseña incorrectos` | Invalid credentials |
+
+## Best Practices
+
+<AccordionGroup>
+  <Accordion title="Store user session data securely">
+    After successful login, store the user data in secure storage:
+    - Use encrypted AsyncStorage on React Native
+    - Never store passwords in plain text
+    - Clear session data on logout
+  </Accordion>
+  
+  <Accordion title="Handle password validation on client side">
+    Validate password requirements before sending to API:
+    ```typescript
+    if (password.length < 6) {
+      alert('Password must be at least 6 characters');
+      return;
+    }
+    ```
+  </Accordion>
+  
+  <Accordion title="Provide clear error feedback">
+    Display specific validation errors to users:
+    - "Email already registered" vs generic "Registration failed"
+    - "Username too short" vs "Invalid username"
+  </Accordion>
+  
+  <Accordion title="Normalize user input">
+    The API normalizes input, but client-side normalization improves UX:
+    ```typescript
+    const email = userInput.toLowerCase().trim();
+    ```
+  </Accordion>
+</AccordionGroup>
+
+## Related Endpoints
+
+<CardGroup cols={2}>
+  <Card title="User Management" icon="user" href="/api/user-management">
+    Update profile and manage user data
+  </Card>
+  <Card title="Campus Data" icon="graduation-cap" href="/api/campus-data">
+    Access degree programs for registration
+  </Card>
+</CardGroup>

@@ -1,0 +1,346 @@
+---
+title: 'App Architecture'
+description: 'Understanding the CUCEIUbicate application architecture, navigation flow, and core design patterns'
+---
+
+## Overview
+
+CUCEIUbicate is built with **React Native** and **Expo**, following a modular architecture that separates concerns between authentication, navigation, and feature screens. The app uses a drawer-based navigation system with stack navigation for authentication flows.
+
+## Technology Stack
+
+<Tabs>
+  <Tab title="Core Framework">
+    - **React Native 0.76.9**: Cross-platform mobile framework
+    - **Expo SDK 52**: Development platform and tooling
+    - **React 18.3.1**: UI component library
+  </Tab>
+  
+  <Tab title="Navigation">
+    - **@react-navigation/native**: Navigation core
+    - **@react-navigation/drawer**: Drawer navigation
+    - **@react-navigation/native-stack**: Stack navigation
+    - **@react-navigation/bottom-tabs**: Tab navigation
+  </Tab>
+  
+  <Tab title="Backend & Storage">
+    - **Supabase**: Backend as a Service
+    - **AsyncStorage**: Local data persistence
+    - **Expo Secure Store**: Secure credential storage
+  </Tab>
+</Tabs>
+
+## Application Architecture
+
+### High-Level Structure
+
+```
+CUCEIUbicate
+├── App.js                    # Entry point, navigation setup
+├── Src/
+│   ├── auth/                 # Authentication flow
+│   ├── Screens/              # Feature screens
+│   ├── Api/                  # API integration
+│   ├── components/           # Shared components
+│   └── assets/               # Images, animations
+└── assets/                   # Global assets
+```
+
+## Navigation Flow
+
+### Main Navigation System
+
+The app uses a **conditional navigation pattern** based on authentication state and onboarding status:
+
+<CodeGroup>
+```javascript App.js - Navigation Logic
+function App() {
+  const [isFirstLaunch, setIsFirstLaunch] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const [userSession, setUserSession] = useState(null);
+  
+  // Priority flow:
+  // 1. Onboarding (first launch)
+  // 2. Home (authenticated user)
+  // 3. Login (returning user, not authenticated)
+  
+  return (
+    <NavigationContainer>
+      <Stack.Navigator>
+        {isFirstLaunch === true ? (
+          // First time users see onboarding
+          <Stack.Group>
+            <Stack.Screen name="Onboarding" component={OnboardingScreen} />
+            <Stack.Screen name="Login" component={LoginScreen} />
+            <Stack.Screen name="Registro" component={RegisterScreen} />
+            <Stack.Screen name="Completar Perfil" component={CompleteProfile} />
+            <Stack.Screen name="Principal Home" component={MyDrawer} />
+          </Stack.Group>
+        ) : isLoggedIn === true ? (
+          // Authenticated users go directly to home
+          <Stack.Screen 
+            name="Principal Home" 
+            component={MyDrawer}
+            initialParams={{ user: userSession }} 
+          />
+        ) : (
+          // Returning users without session see login
+          <Stack.Group>
+            <Stack.Screen name="Login" component={LoginScreen} />
+            {/* Additional auth screens */}
+          </Stack.Group>
+        )}
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
+```
+
+```javascript MyDrawer.js - Drawer Navigation
+export const MyDrawer = () => {
+  return (
+    <Drawer.Navigator
+      initialRouteName="Mapa"
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+    >
+      <Drawer.Screen name="Mapa" component={HomePage} />
+      <Drawer.Screen name="Perfil" component={ProfileScreen} />
+      <Drawer.Screen name="Directorio" component={Directory} />
+      <Drawer.Screen name="Articulos" component={Articles} />
+      <Drawer.Screen name="Becas" component={Scholarships} />
+      <Drawer.Screen name="Servicio social" component={Social_service} />
+      <Drawer.Screen name="CID" component={CID} />
+      {/* Additional screens... */}
+    </Drawer.Navigator>
+  );
+};
+```
+</CodeGroup>
+
+### Navigation Hierarchy
+
+<Accordion title="Authentication Flow">
+The authentication flow handles three main states:
+
+1. **Onboarding Screen** (`Src/auth/OnboardingScreen.js`)
+   - First-time user experience
+   - Swipeable introduction slides
+
+2. **Login Screen** (`Src/auth/LoginScreen.js`)
+   - Email/password authentication
+   - Session creation via `SessionManager`
+
+3. **Registration Screen** (`Src/auth/RegisterScreen.js`)
+   - New user registration
+   - Validation and account creation
+
+4. **Complete Profile** (`Src/auth/CompleteProfile.js`)
+   - Additional user information
+   - Career selection and preferences
+</Accordion>
+
+<Accordion title="Main Application Flow">
+After authentication, users access the drawer navigation:
+
+1. **MyDrawer Component** (`Src/Screens/Home/Components/SearchBarsComponent/MyDrawer.js`)
+   - Central navigation hub
+   - 12+ feature screens
+   - Custom drawer with categorized sections
+
+2. **Home Screen** (`Src/Screens/Home/HomePage.js`)
+   - Interactive campus map
+   - Route planning
+   - Building information
+</Accordion>
+
+## Core Architectural Patterns
+
+### Session Management
+
+<CodeGroup>
+```javascript SessionManager.js - Session API
+// Save user session
+export const setSession = async (userData) => {
+  const sessionData = JSON.stringify(userData);
+  await AsyncStorage.setItem("userSession", sessionData);
+};
+
+// Retrieve user session
+export const getSession = async () => {
+  const session = await AsyncStorage.getItem("userSession");
+  return session ? JSON.parse(session) : null;
+};
+
+// Clear user session
+export const clearSession = async () => {
+  await AsyncStorage.removeItem("userSession");
+};
+```
+
+```javascript App.js - Session Check
+const checkAppState = async () => {
+  // 1. Check onboarding status
+  const onboardingCompleted = await AsyncStorage.getItem("@onboarding_completed");
+  
+  if (onboardingCompleted === null) {
+    setIsFirstLaunch(true);
+    return;
+  }
+  
+  // 2. Check user session
+  const session = await getSession();
+  
+  if (session) {
+    setUserSession(session);
+    setIsLoggedIn(true);
+  } else {
+    setIsLoggedIn(false);
+  }
+};
+```
+</CodeGroup>
+
+### Authentication System
+
+The app uses a custom hashing system for password security:
+
+```javascript login.js - Authentication
+export const login = async (email, password) => {
+  // Find user by email
+  const users = await findUserByEmail(email);
+  
+  if (!users || users.length === 0) {
+    return { isMatch: false, userData: null };
+  }
+  
+  const user = users[0];
+  
+  // Verify password with custom hash verification
+  const passwordMatch = verifyPassword(password, user.var_password);
+  
+  if (!passwordMatch) {
+    return { isMatch: false, userData: null };
+  }
+  
+  // Return user data
+  return {
+    isMatch: true,
+    userData: {
+      id: user.id,
+      email: user.var_email,
+      username: user.var_username,
+      name: user.var_name,
+      code: user.int_user_code,
+      // ...additional fields
+    }
+  };
+};
+```
+
+## Component Architecture
+
+### Screen Components
+
+Each feature screen follows a consistent structure:
+
+1. **State Management**: Using React hooks (`useState`, `useEffect`, `useRef`)
+2. **Navigation Integration**: Using `useNavigation` and `useRoute` hooks
+3. **Session Validation**: Checking user authentication
+4. **Platform-Specific Styling**: Conditional styles for iOS/Android
+
+### Example: HomePage Structure
+
+```javascript HomePage.js
+export const HomePage = () => {
+  // State management
+  const [selectedPoint, setSelectedPoint] = useState(null);
+  const [showSearchBar, setShowSearchBar] = useState(false);
+  const [isRouteActive, setIsRouteActive] = useState(false);
+  
+  // Navigation
+  const navigation = useNavigation();
+  const bottomSheetRef = useRef(null);
+  
+  // Session validation
+  useEffect(() => {
+    checkSession();
+  }, [isFocused]);
+  
+  const checkSession = async () => {
+    const session = await getSession();
+    if (!session) {
+      navigation.reset({ routes: [{ name: "Login" }] });
+    }
+  };
+  
+  return (
+    <View style={styles.container}>
+      {/* Map, search, and interactive components */}
+    </View>
+  );
+};
+```
+
+## State Management Strategy
+
+CUCEIUbicate uses **local component state** with React hooks rather than a global state management solution. Key patterns include:
+
+- **AsyncStorage** for persistent data (session, preferences)
+- **Component state** for UI interactions
+- **Navigation params** for passing data between screens
+- **Context** (where needed) for shared functionality
+
+## Performance Optimizations
+
+<Accordion title="Image and Asset Loading">
+- WebP format for map images (smaller file size)
+- Lazy loading of building modules
+- Cached assets via Expo's asset system
+</Accordion>
+
+<Accordion title="Animation Performance">
+- React Native Reanimated for 60 FPS animations
+- Native driver enabled where possible
+- Lottie animations for splash and loading states
+</Accordion>
+
+<Accordion title="Navigation Optimizations">
+- Unmounting inactive screens
+- Lazy loading drawer screens
+- Debounced search inputs
+</Accordion>
+
+## Platform-Specific Considerations
+
+### Android
+
+```javascript
+Platform.OS === 'android' ? height * 0.06 : height * 0.05
+```
+
+- Higher elevation values for shadows
+- Adjusted button sizes (56x56 minimum touch target)
+- StatusBar configuration with system UI integration
+
+### iOS
+
+```javascript
+Platform.OS === 'ios' ? 100 : 70  // Header height
+```
+
+- Shadow properties instead of elevation
+- Safe area handling
+- Different header heights for notched devices
+
+## Security Architecture
+
+1. **Password Hashing**: Custom secure hashing with salt
+2. **Secure Storage**: Expo SecureStore for sensitive data
+3. **Session Management**: Token-based authentication
+4. **API Security**: Supabase Row Level Security (RLS)
+
+---
+
+**Next Steps:**
+- [Project Structure](/development/project-structure) - Detailed file organization
+- [Dependencies](/development/dependencies) - Complete dependency reference

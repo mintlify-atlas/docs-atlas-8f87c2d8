@@ -1,0 +1,349 @@
+---
+title: 'Features'
+description: 'Discover all the powerful features that make CUCEIUbicate your essential campus companion'
+icon: 'sparkles'
+---
+
+CUCEIUbicate is a comprehensive mobile application designed specifically for CUCEI (Centro Universitario de Ciencias Exactas e Ingenierías) students at the Universidad de Guadalajara. The app provides interactive campus navigation, intelligent assistance, and essential academic services all in one place.
+
+## Core Features
+
+<CardGroup cols={2}>
+  <Card title="Interactive Campus Map" icon="map" color="#3b82f6">
+    Navigate the CUCEI campus with an interactive, zoomable map featuring pinch-to-zoom functionality and real-time location markers
+  </Card>
+  <Card title="AI Chatbot Assistant" icon="robot" color="#8b5cf6">
+    Get instant answers about campus facilities, schedules, events, and more with our intelligent chatbot powered by Stack AI
+  </Card>
+  <Card title="Route Planning" icon="route" color="#10b981">
+    Find optimal routes between campus buildings with step-by-step directions and video guides
+  </Card>
+  <Card title="Student Profile" icon="user" color="#f59e0b">
+    Manage your student information, view your curriculum, and customize your profile avatar
+  </Card>
+</CardGroup>
+
+## Interactive Campus Navigation
+
+The heart of CUCEIUbicate is its advanced map navigation system that helps students find their way around campus effortlessly.
+
+### Map Features
+
+- **Zoomable Campus Map**: Interactive SVG-based map with smooth zoom and pan controls
+- **Building Search**: Quick search to locate any building or facility on campus
+- **Point of Interest Markers**: Tap any building to view detailed information
+- **Route Visualization**: Visual path display with coordinate-based routing
+
+<Note>
+The map supports both pinch-to-zoom and double-tap zoom gestures for optimal navigation experience.
+</Note>
+
+### Implemented in HomePage.js
+
+The map component uses `react-native-image-pan-zoom` for gesture handling and custom SVG overlays for route visualization:
+
+```javascript HomePage.js (lines 355-386)
+<GestureHandlerRootView style={styles.mapContainer}>
+  <ImageZoom
+    ref={imageZoomRef}
+    cropWidth={Dimensions.get("window").width}
+    cropHeight={Dimensions.get("window").height}
+    imageWidth={1600}
+    imageHeight={1400}
+    enableSwipeDown={false}
+    panToMove={true}
+    pinchToZoomInSensitivity={1}
+    minScale={0.5}
+    maxScale={2}
+    enableCenterFocus={false}
+    useNativeDriver={true}
+  >
+    <View style={styles.zoomContainer}>
+      <Image
+        source={currentMapImage}
+        style={styles.mapImage}
+        resizeMode="stretch"
+      />
+      <MapSVG
+        isRouteActive={isRouteActive}
+        activeRoutePoints={activeRoutePoints}
+        onPointPress={handlePointPress}
+        points={points}
+        markedObject={markedObject}
+        setMarkedObject={setMarkedObject}
+      />
+    </View>
+  </ImageZoom>
+</GestureHandlerRootView>
+```
+
+## Intelligent Route Planning
+
+CUCEIUbicate includes a comprehensive routing system with over 100 pre-mapped routes between campus buildings.
+
+### Route Features
+
+<Steps>
+  <Step title="Select Destination">
+    Search for your destination building using the route search interface
+  </Step>
+  <Step title="View Route">
+    The app displays the optimal path overlaid on the campus map
+  </Step>
+  <Step title="Watch Video Guide">
+    Access video tutorials showing the actual route for better orientation
+  </Step>
+  <Step title="Follow Directions">
+    Navigate using visual waypoints and end-to-end guidance
+  </Step>
+</Steps>
+
+### Route Data Structure
+
+Routes are stored in JSON format with coordinate arrays defining the path:
+
+```json routes.json (excerpt)
+{
+  "routes": [
+    {
+      "name": "Modulo A - Modulo B",
+      "coordinates": [
+        [494.44549575759874, 1143.0259312557462],
+        [479.3604700907535, 1119.0259312557462],
+        [510.41787587543496, 1095.6925979224127],
+        [549.4614717190344, 1153.6925979224127],
+        [579.6315230527251, 1156.3592645890794],
+        [612.4636377393884, 1205.6925979224127]
+      ]
+    }
+  ]
+}
+```
+
+## AI-Powered Chatbot
+
+The integrated chatbot provides intelligent assistance for all campus-related queries.
+
+### Chatbot Capabilities
+
+- **24/7 Availability**: Always ready to answer your questions
+- **Campus Information**: Details about buildings, facilities, and services
+- **Schedule Assistance**: Information about academic calendars and events
+- **Smart Context**: Maintains conversation history for better responses
+- **Link Detection**: Automatically formats URLs and email addresses
+
+<Accordion title="View Chatbot Implementation">
+The chatbot uses Google's Generative AI and Stack AI for intelligent responses:
+
+```javascript Chatbot.js (lines 142-169)
+async function query(user_input) {
+  const payload = {
+    user_id: "1234",
+    "in-0": user_input,
+  };
+
+  try {
+    const response = await fetch(API_URL, {
+      method: "POST",
+      headers: HEADERS,
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error("Error al comunicarse con la API");
+    }
+
+    const responseData = await response.json();
+    const rawResponse =
+      responseData.outputs?.["out-0"] ||
+      "No se recibió una respuesta válida en el campo 'out-0'.";
+
+    return rawResponse.slice(0, 5000);
+  } catch (e) {
+    return `Error al comunicarse con la API: ${e.message}`;
+  }
+}
+```
+</Accordion>
+
+### Conversation Features
+
+- **Message Persistence**: Chat history saved locally with AsyncStorage
+- **Auto-Scroll**: Smooth scrolling to latest messages
+- **Copy to Clipboard**: Easily copy bot responses
+- **Typing Indicators**: Visual feedback during response generation
+- **Inactivity Management**: Automatic conversation cleanup after periods of inactivity
+
+<Warning>
+The chatbot will prompt to clear the conversation after 2 minutes of inactivity and automatically clear it after 3 minutes to maintain performance.
+</Warning>
+
+## Student Profile Management
+
+Comprehensive profile management with personalization options.
+
+### Profile Features
+
+- **Personal Information Display**: View name, student code, email, and degree program
+- **Avatar Customization**: Choose from 20+ animal avatar icons
+- **Curriculum Access**: View your program's full curriculum map
+- **University Information**: Display of institutional details and current academic cycle
+- **Session Management**: Secure login/logout functionality
+
+### Avatar Selection
+
+```javascript ProfileScreen.js (lines 193-220)
+const renderIcon = ({ item }) => {
+  return (
+    <TouchableOpacity
+      onPress={() => handleAvatarChange(item.uri)}
+      style={[
+        styles.iconButton,
+        selectedIcon === item.uri && styles.selectedIconButton,
+      ]}
+      activeOpacity={0.7}
+    >
+      <View style={styles.iconImageContainer}>
+        <Image
+          source={item.uri}
+          style={[
+            styles.iconImage,
+            selectedIcon === item.uri && styles.selectedIconImage,
+          ]}
+        />
+        {selectedIcon === item.uri && (
+          <View style={styles.selectedBadge}>
+            <FontAwesomeIcon icon={faCheckCircle} size={14} color="#10b981" />
+          </View>
+        )}
+      </View>
+    </TouchableOpacity>
+  );
+};
+```
+
+## Academic Services
+
+Quick access to essential university services and information.
+
+### Available Services
+
+<CardGroup cols={2}>
+  <Card title="Document Requests" icon="file-alt">
+    Submit requests for official transcripts, certificates, and other academic documents
+  </Card>
+  <Card title="Absence Justification" icon="clipboard-list">
+    Submit and track absence justification requests
+  </Card>
+  <Card title="Payment Orders" icon="credit-card">
+    Access payment information and generate payment orders for university fees
+  </Card>
+  <Card title="Academic Calendar" icon="calendar-alt">
+    View important dates, exam schedules, and registration periods
+  </Card>
+</CardGroup>
+
+### Service Implementation
+
+The School Services screen dynamically loads service information from JSON:
+
+```javascript School_services.js (lines 48-86)
+const School_services = () => {
+  const [jsonData, setJsonData] = useState(null);
+  const [refreshing, setRefreshing] = useState(false);
+
+  useEffect(() => {
+    loadJsonFromStorage();
+  }, []);
+
+  const loadJsonFromStorage = async () => {
+    try {
+      const storedData = await AsyncStorage.getItem("scholarServicesData");
+      if (storedData !== null) {
+        setJsonData(JSON.parse(storedData));
+      } else {
+        const json = require("../../../json/scholar_services.json");
+        setJsonData(json);
+        await AsyncStorage.setItem("scholarServicesData", JSON.stringify(json));
+      }
+    } catch (error) {
+      console.error("Error loading data from storage:", error);
+      const json = require("../../../json/scholar_services.json");
+      setJsonData(json);
+    }
+  };
+
+  const loadJson = async () => {
+    setRefreshing(true);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      const json = require("../../../json/scholar_services.json");
+      await AsyncStorage.setItem("scholarServicesData", JSON.stringify(json));
+      setJsonData(json);
+    } catch (error) {
+      console.error("Error refreshing data:", error);
+    } finally {
+      setRefreshing(false);
+    }
+  };
+};
+```
+
+## Additional Features
+
+### Onboarding Experience
+
+First-time users are greeted with an interactive onboarding flow that introduces app features and capabilities.
+
+### Splash Screen
+
+Beautiful animated splash screen with Lottie animations for a premium app experience.
+
+### Navigation Drawer
+
+Side drawer menu providing quick access to:
+- Home (Map)
+- Chatbot
+- Profile
+- Community Directory
+- CUCEI Radio
+- Scholarships
+- School Services
+- Medical Services
+- Social Service
+- CID (Research Center)
+- Articles
+
+### Platform Optimization
+
+- **Android & iOS Support**: Optimized UI/UX for both platforms
+- **Tablet Support**: Responsive design adapts to larger screens
+- **Performance**: Efficient rendering with React Native optimizations
+- **Offline Support**: AsyncStorage for data persistence
+
+## Technical Stack
+
+<Tabs>
+  <Tab title="Core">
+    - React Native 0.76.9
+    - Expo SDK 52
+    - React Navigation 6.x
+  </Tab>
+  <Tab title="UI/UX">
+    - React Native Reanimated
+    - Lottie Animations
+    - FontAwesome Icons
+    - Linear Gradients
+  </Tab>
+  <Tab title="Services">
+    - Supabase (Backend)
+    - Stack AI (Chatbot)
+    - AsyncStorage (Local Data)
+  </Tab>
+</Tabs>
+
+---
+
+<Note>
+All features are designed with student needs in mind, providing a seamless and efficient campus experience. The app is continuously updated with new features and improvements based on user feedback.
+</Note>

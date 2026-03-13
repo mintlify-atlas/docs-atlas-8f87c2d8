@@ -1,0 +1,404 @@
+---
+title: 'Project Structure'
+description: 'Complete directory layout and file organization of the CUCEIUbicate mobile application'
+---
+
+## Root Directory Structure
+
+```
+CUCEIUbicate/
+├── App.js                    # Application entry point
+├── app.json                  # Expo configuration
+├── package.json              # Dependencies and scripts
+├── babel.config.js           # Babel configuration
+├── tsconfig.json             # TypeScript configuration
+├── eas.json                  # Expo Application Services config
+├── assets/                   # Global application assets
+│   └── images/
+│       ├── cucei.png        # App icon
+│       ├── splash.png       # Splash screen
+│       └── icono.png        # Android adaptive icon
+├── json/                     # Static JSON data files
+├── plugins/                  # Custom Expo config plugins
+├── scripts/                  # Build and utility scripts
+└── Src/                     # Main source code directory
+    ├── Api/                 # API integration layer
+    ├── auth/                # Authentication screens
+    ├── Screens/             # Feature screens
+    ├── components/          # Shared components
+    └── assets/              # Source-level assets
+```
+
+## Src Directory - Complete Structure
+
+The `Src/` directory contains all application source code, organized by feature and function:
+
+### Authentication Module (`Src/auth/`)
+
+<Accordion title="Authentication Files">
+```
+Src/auth/
+├── LoginScreen.js           # Email/password login
+├── RegisterScreen.js        # New user registration
+├── CompleteProfile.js       # Post-registration profile setup
+├── OnboardingScreen.js      # First-time user onboarding
+└── SessionManager.js        # Session persistence utilities
+```
+
+**Key Files:**
+
+- **`LoginScreen.js`**: Handles user authentication with email/password
+- **`RegisterScreen.js`**: New account creation with validation
+- **`CompleteProfile.js`**: Additional user information (career, preferences)
+- **`OnboardingScreen.js`**: Swipeable introduction for first-time users
+- **`SessionManager.js`**: AsyncStorage wrapper for session management
+</Accordion>
+
+### API Layer (`Src/Api/`)
+
+<Accordion title="API Integration">
+```
+Src/Api/
+├── login.js                 # Authentication logic
+└── lib/
+    └── api.js              # Supabase client and API calls
+```
+
+**Responsibilities:**
+- Supabase client initialization
+- User authentication and verification
+- Database queries for user data
+- Password hashing and validation
+</Accordion>
+
+### Screens Directory (`Src/Screens/`)
+
+The Screens directory is organized by feature area:
+
+<Tabs>
+  <Tab title="Home">
+    ```
+    Src/Screens/Home/
+    ├── HomePage.js                              # Main map screen
+    ├── assets/
+    │   └── images/
+    │       └── mapa.webp                       # Campus map image
+    └── Components/
+        ├── MapComponent/
+        │   ├── MapSVG.js                       # SVG overlay for interactive map
+        │   ├── data.js                         # Map point definitions
+        │   └── data/                           # Building-specific data
+        ├── SearchBarsComponent/
+        │   ├── MyDrawer.js                     # Main drawer navigation
+        │   ├── SearchRoute.js                  # Route search component
+        │   ├── SearchRoute2.js                 # Enhanced route search
+        │   └── SearchSpecific.js               # Building-specific search
+        ├── BottonSheetComponent/
+        │   ├── BottonSheet.js                  # Bottom sheet controller
+        │   ├── bottomSheetContents.js          # Content renderer
+        │   └── Modulos/                        # Building modules (A-Z)
+        │       ├── Modulo_A/
+        │       ├── Modulo_B/
+        │       ├── Biblioteca/
+        │       ├── Cafeteria/
+        │       └── ... (50+ building modules)
+        └── VideoComponent/
+            ├── VideoModal.js                   # Route video player
+            └── Videos_data.js                  # Video URI mappings
+    ```
+    
+    The Home screen is the most complex, featuring:
+    - Interactive SVG map with 50+ buildings
+    - Route planning and navigation
+    - Bottom sheet for building information
+    - Video tutorials for routes
+  </Tab>
+  
+  <Tab title="Profile">
+    ```
+    Src/Screens/Profile/
+    ├── ProfileScreen.js                        # User profile screen
+    ├── Data_iconos_mallas.js                   # Career/curriculum icons
+    ├── Iconos_animales/                        # Avatar icons (animals)
+    ├── Iconos_perzonalizados/                  # Custom avatar icons
+    └── Mallas_Curriculares/                    # Curriculum data by career
+    ```
+    
+    Features:
+    - User information display
+    - Avatar selection (animal and custom icons)
+    - Career curriculum display
+    - Profile editing
+  </Tab>
+  
+  <Tab title="Scholastic Services">
+    ```
+    Src/Screens/ScolarServices/
+    ├── School_services.js                      # Academic services hub
+    ├── Medical_services.js                     # Campus health services
+    ├── Facial_recognition.js                   # Access control info
+    ├── Social_service.js                       # Community service tracking
+    └── CID.js                                  # Language center info
+    ```
+    
+    Each service provides:
+    - Service information
+    - Contact details
+    - Hours of operation
+    - External links to service portals
+  </Tab>
+  
+  <Tab title="Education & Community">
+    ```
+    Src/Screens/Education/
+    ├── CUCEI_radio.js                          # Campus radio streaming
+    └── Scholarships.js                         # Scholarship information
+    
+    Src/Screens/community/
+    ├── Directory.js                            # Academic directory
+    └── Articles.js                             # News and announcements
+    ```
+  </Tab>
+  
+  <Tab title="ChatBot">
+    ```
+    Src/Screens/ChatBot/
+    ├── Chatbot.js                              # AI assistant interface
+    ├── Chatboot_Button.js                      # Floating chat button
+    └── images/                                 # Chat UI assets
+    ```
+    
+    AI-powered assistant using Google Generative AI for:
+    - Campus navigation help
+    - Service information
+    - General queries
+  </Tab>
+</Tabs>
+
+### Shared Components (`Src/components/`)
+
+```
+Src/components/
+└── SplashScreen.js              # Animated splash screen
+```
+
+Small but important shared components used across the app.
+
+### Assets (`Src/assets/`)
+
+```
+Src/assets/
+├── animations/                  # Lottie animation files
+└── images/                      # Source-level images
+```
+
+## File Naming Conventions
+
+The project uses several naming patterns:
+
+<CodeGroup>
+```text Screen Components
+PascalCase for React components:
+- LoginScreen.js
+- HomePage.js
+- ProfileScreen.js
+```
+
+```text Utility Files
+camelCase for utilities:
+- login.js
+- data.js
+- bottomSheetContents.js
+```
+
+```text Component Prefixes
+Descriptive prefixes for related files:
+- Search*.js (SearchRoute, SearchSpecific)
+- Data_*.js (Data_iconos_mallas)
+- Videos_*.js (Videos_data)
+```
+</CodeGroup>
+
+## Key Configuration Files
+
+### app.json
+
+<Accordion title="Expo Configuration">
+```json
+{
+  "expo": {
+    "name": "CUCEIUbicate",
+    "slug": "CUCEIUbicate",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/cucei.png",
+    "splash": {
+      "image": "./assets/images/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#FFFFFF"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "yairhdz24"
+    },
+    "android": {
+      "package": "com.cuceiubicate.cuceiubicate",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/icono.png",
+        "backgroundColor": "#FFFFFF"
+      },
+      "permissions": [
+        "READ_EXTERNAL_STORAGE",
+        "WRITE_EXTERNAL_STORAGE"
+      ]
+    },
+    "plugins": [
+      "expo-secure-store",
+      "expo-video",
+      ["expo-build-properties", {
+        "android": {
+          "compileSdkVersion": 35,
+          "targetSdkVersion": 35,
+          "minSdkVersion": 24
+        }
+      }]
+    ]
+  }
+}
+```
+</Accordion>
+
+### package.json Scripts
+
+```json
+{
+  "scripts": {
+    "start": "expo start",
+    "android": "expo start --android",
+    "ios": "expo start --ios",
+    "web": "expo start --web"
+  }
+}
+```
+
+## Module Organization Pattern
+
+Each building module in `Src/Screens/Home/Components/BottonSheetComponent/Modulos/` follows a consistent structure:
+
+```
+Modulo_A/
+├── [BuildingName].js           # Component file
+└── imagenes/                   # Building-specific images
+    ├── exterior.jpg
+    ├── interior_1.jpg
+    └── ...
+```
+
+This pattern is repeated for 50+ campus buildings (Modules A-Z, specialized buildings, entrances, etc.).
+
+## Import Path Examples
+
+<CodeGroup>
+```javascript Relative Imports (Common)
+// From HomePage.js
+import { MyDrawer } from "./Components/SearchBarsComponent/MyDrawer";
+import { BottomSheetComponent } from "./Components/BottonSheetComponent/BottonSheet";
+import { points } from "./Components/MapComponent/data";
+```
+
+```javascript Cross-Module Imports
+// From MyDrawer.js
+import { HomePage } from "../../HomePage";
+import { Directory } from "../../../community/Directory";
+import { ProfileScreen } from "../../../Profile/ProfileScreen";
+import { clearSession } from "../../../../auth/SessionManager";
+```
+
+```javascript Absolute Imports (Assets)
+// From any component
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import { FontAwesomeIcon } from "@fortawesome/react-native-fontawesome";
+```
+</CodeGroup>
+
+## Data File Organization
+
+### Static Data Files
+
+```
+json/                           # Root-level JSON data
+├── routes.json                 # Campus route definitions
+├── buildings.json              # Building metadata
+└── ... (various data files)
+```
+
+### Component-Level Data
+
+```
+Src/Screens/Home/Components/
+├── MapComponent/data.js        # Map points array
+├── VideoComponent/Videos_data.js   # Video URIs
+└── BottonSheetComponent/bottomSheetContents.js  # Building content
+```
+
+## Asset Organization Strategy
+
+<Tabs>
+  <Tab title="Global Assets">
+    **Location:** `assets/`
+    
+    Used for:
+    - App icon
+    - Splash screen
+    - Platform-specific icons (iOS/Android)
+  </Tab>
+  
+  <Tab title="Feature Assets">
+    **Location:** `Src/Screens/[Feature]/assets/`
+    
+    Used for:
+    - Feature-specific images
+    - Screen backgrounds
+    - Component illustrations
+  </Tab>
+  
+  <Tab title="Module Assets">
+    **Location:** `Src/Screens/Home/Components/.../Modulos/[Module]/imagenes/`
+    
+    Used for:
+    - Building photos
+    - Floor plans
+    - Module-specific media
+  </Tab>
+</Tabs>
+
+## File Count Summary
+
+- **Total Files in Src/**: 171 files
+- **Building Modules**: 50+ individual modules
+- **Authentication Files**: 5 screens + utilities
+- **Main Feature Screens**: 12+ top-level screens
+- **Components**: 20+ reusable components
+
+## Development Workflow
+
+### Adding a New Screen
+
+1. Create screen file in appropriate `Src/Screens/[Category]/` directory
+2. Add navigation entry in `MyDrawer.js`
+3. Import and configure in drawer navigator
+4. Add drawer item with icon and label
+
+### Adding a New Building Module
+
+1. Create directory: `Modulos/[ModuleName]/`
+2. Add component file with building information
+3. Create `imagenes/` subdirectory for photos
+4. Update `data.js` with new map point
+5. Register in `bottomSheetContents.js`
+
+---
+
+**Related Documentation:**
+- [Architecture](/development/architecture) - Application design patterns
+- [Dependencies](/development/dependencies) - Package reference

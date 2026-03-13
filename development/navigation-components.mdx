@@ -1,0 +1,559 @@
+---
+title: 'Navigation Components'
+description: 'Understand React Navigation setup, drawer navigation, and screen routing in CUCEIUbicate'
+icon: 'compass'
+---
+
+## Overview
+
+CUCEIUbicate uses React Navigation v6 with a drawer navigator for the main app navigation. The navigation system provides a smooth, intuitive user experience with organized sections and custom styling.
+
+## Navigation Architecture
+
+<CardGroup cols={3}>
+  <Card title="Stack Navigator" icon="layer-group">
+    Manages authentication and onboarding flow
+  </Card>
+  <Card title="Drawer Navigator" icon="bars">
+    Main navigation after authentication
+  </Card>
+  <Card title="Screen Components" icon="window">
+    Individual feature screens and views
+  </Card>
+</CardGroup>
+
+## Root Navigation Setup
+
+### Navigation Container
+
+The app uses a conditional navigation structure based on authentication state:
+
+<CodeGroup>
+```javascript App.js
+import { NavigationContainer } from "@react-navigation/native";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { LoginScreen } from "./Src/auth/LoginScreen";
+import { MyDrawer } from "./Src/Screens/Home/Components/SearchBarsComponent/MyDrawer";
+import { OnboardingScreen } from "./Src/auth/OnboardingScreen";
+
+const Stack = createNativeStackNavigator();
+
+function App() {
+  const [isFirstLaunch, setIsFirstLaunch] = useState(null);
+  const [isLoggedIn, setIsLoggedIn] = useState(null);
+  const [userSession, setUserSession] = useState(null);
+
+  return (
+    <NavigationContainer>
+      <StatusBar
+        backgroundColor="#000000"
+        barStyle={Platform.OS === "ios" ? "dark-content" : "light-content"}
+      />
+      <View style={styles.container}>
+        <Stack.Navigator
+          screenOptions={{
+            headerShown: false
+          }}
+        >
+          {/* Conditional navigation based on auth state */}
+          {isFirstLaunch === true ? (
+            // First launch - show onboarding
+            <Stack.Group>
+              <Stack.Screen
+                name="Onboarding"
+                component={OnboardingScreen}
+                options={{ headerShown: false }}
+              />
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Registro" component={RegisterScreen} />
+              <Stack.Screen name="Completar Perfil" component={CompleteProfile} />
+              <Stack.Screen name="Principal Home" component={MyDrawer} />
+            </Stack.Group>
+          ) : isLoggedIn === true ? (
+            // Logged in - go directly to home
+            <Stack.Screen
+              name="Principal Home"
+              component={MyDrawer}
+              options={{ headerShown: false }}
+              initialParams={{ user: userSession }}
+            />
+          ) : isLoggedIn === false ? (
+            // Not logged in - show login
+            <Stack.Group>
+              <Stack.Screen name="Login" component={LoginScreen} />
+              <Stack.Screen name="Registro" component={RegisterScreen} />
+              <Stack.Screen name="Completar Perfil" component={CompleteProfile} />
+              <Stack.Screen name="Principal Home" component={MyDrawer} />
+            </Stack.Group>
+          ) : (
+            // Loading state
+            <Stack.Screen name="Loading" component={SplashScreen} />
+          )}
+        </Stack.Navigator>
+      </View>
+    </NavigationContainer>
+  );
+}
+```
+</CodeGroup>
+
+<Note>
+The navigation structure uses conditional rendering based on `isFirstLaunch` and `isLoggedIn` states to determine which screens to show. This ensures users see the appropriate flow based on their authentication status.
+</Note>
+
+## Drawer Navigator
+
+### MyDrawer Component
+
+The main drawer navigator provides access to all app features:
+
+<CodeGroup>
+```javascript MyDrawer Structure
+import { createDrawerNavigator } from "@react-navigation/drawer";
+
+const Drawer = createDrawerNavigator();
+
+export const MyDrawer = () => {
+  const route = useRoute();
+  const { user } = route.params;
+
+  return (
+    <Drawer.Navigator
+      initialRouteName="Mapa"
+      screenOptions={{
+        headerStyle: {
+          backgroundColor: "#0b34b0",
+          height: Platform.OS === "ios" ? 100 : 70,
+          elevation: 8,
+          shadowColor: "#000",
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 3.84,
+        },
+        headerTintColor: "#FFFFFF",
+        headerTitleStyle: {
+          fontWeight: "700",
+          fontSize: 18,
+          letterSpacing: 0.5,
+        },
+        drawerStyle: {
+          backgroundColor: "#ffffff",
+          width: Platform.OS === 'android' ? width * 0.85 : 320,
+          elevation: 16,
+          shadowColor: "#000",
+          shadowOpacity: 0.25,
+          shadowRadius: 12,
+        },
+        drawerType: 'slide',
+        overlayColor: 'rgba(0, 0, 0, 0.5)',
+      }}
+      drawerContent={(props) => <CustomDrawerContent {...props} />}
+    >
+      {/* Drawer screens defined below */}
+    </Drawer.Navigator>
+  );
+};
+```
+</CodeGroup>
+
+### Drawer Sections Organization
+
+The drawer content is organized into logical sections:
+
+<CodeGroup>
+```javascript Drawer Sections
+const drawerSections = [
+  {
+    title: "Principal",
+    items: [
+      { name: "Mapa", label: "Inicio", icon: faHome, description: "Navegar por el campus" },
+      { name: "Directorio", label: "Directorio", icon: faFolder, description: "Contactos académicos" },
+      { name: "Articulos", label: "Artículos", icon: faNewspaper, description: "Noticias y eventos" },
+    ]
+  },
+  {
+    title: "Servicios Académicos",
+    items: [
+      { name: "Becas", label: "Becas", icon: faGraduationCap, description: "Convocatorias abiertas" },
+      { name: "Servicio social", label: "Servicio Social", icon: faHandsHelping, description: "Gestiona tu servicio" },
+      { name: "Servicios escolares", label: "Servicios Escolares", icon: faUserFriends, description: "Trámites académicos" },
+      { name: "CID", label: "CID", icon: faBookBookmark, description: "Centro de idiomas" },
+    ]
+  },
+  {
+    title: "Servicios de Bienestar",
+    items: [
+      { name: "Servicios médicos", label: "Servicios Médicos", icon: faHeartPulse, description: "Atención médica" },
+      { name: "Reconocimiento facial", label: "Acceso Facial", icon: faFaceSmile, description: "Control de acceso" },
+    ]
+  },
+  {
+    title: "Entretenimiento",
+    items: [
+      { name: "Radio CUCEI", label: "Radio CUCEI", icon: faRadio, description: "Escucha en vivo" },
+      { name: "ChatbotScreen", label: "Asistente IA", icon: faComments, description: "Chat inteligente" },
+    ]
+  }
+];
+```
+</CodeGroup>
+
+## Custom Drawer Content
+
+### Header with Gradient
+
+The drawer features a premium header with gradient background:
+
+<CodeGroup>
+```javascript Custom Drawer Header
+import { LinearGradient } from "expo-linear-gradient";
+import Animated, { FadeInDown } from "react-native-reanimated";
+
+<Animated.View entering={FadeInDown.duration(800)} style={styles.drawerHeaderContainer}>
+  <LinearGradient
+    colors={["#0b34b0", "#1e40af", "#3b82f6"]}
+    style={styles.drawerHeader}
+    start={{ x: 0, y: 0 }}
+    end={{ x: 1, y: 1 }}
+  >
+    <View style={styles.headerContent}>
+      <View style={styles.logoContainer}>
+        <Image
+          source={require("../../../../../assets/images/Logo_Cucei.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+      </View>
+      <Text style={styles.drawerHeaderText}>CUCEI</Text>
+      <Text style={styles.drawerSubHeaderText}>UBÍCATE</Text>
+      <View style={styles.versionBadge}>
+        <Text style={styles.versionText}>Beta v1.01</Text>
+      </View>
+    </View>
+    {/* Decorative elements */}
+    <View style={styles.decorativeCircle1} />
+    <View style={styles.decorativeCircle2} />
+  </LinearGradient>
+</Animated.View>
+```
+</CodeGroup>
+
+### Drawer Item Component
+
+Custom drawer items with active state and animations:
+
+<CodeGroup>
+```javascript Drawer Item Rendering
+const renderDrawerItem = ({ item, index, sectionIndex }) => {
+  const isActive = activeItem === item.name;
+
+  return (
+    <Animated.View
+      key={item.name}
+      entering={FadeInLeft.delay(sectionIndex * 100 + index * 50)}
+      style={[styles.customDrawerItem, isActive && styles.activeDrawerItem]}
+    >
+      <TouchableOpacity
+        onPress={() => {
+          setActiveItem(item.name);
+          navigation.navigate(item.name);
+        }}
+        style={styles.drawerItemTouchable}
+        activeOpacity={0.7}
+      >
+        <View style={[styles.iconContainer, isActive && styles.activeIconContainer]}>
+          <FontAwesomeIcon
+            icon={item.icon}
+            size={20}
+            color={isActive ? "#FFFFFF" : "#0b34b0"}
+          />
+        </View>
+        <View style={styles.itemTextContainer}>
+          <Text style={[styles.itemLabel, isActive && styles.activeItemLabel]}>
+            {item.label}
+          </Text>
+          <Text style={styles.itemDescription}>{item.description}</Text>
+        </View>
+        <FontAwesomeIcon
+          icon={faChevronRight}
+          size={14}
+          color={isActive ? "#0b34b0" : "#94a3b8"}
+        />
+      </TouchableOpacity>
+    </Animated.View>
+  );
+};
+```
+</CodeGroup>
+
+<Tabs>
+  <Tab title="Active State">
+    Active drawer items have a highlighted background (`#f1f5f9`), blue icon container, and bolder text styling.
+  </Tab>
+  <Tab title="Animations">
+    Each item uses `FadeInLeft` animation with staggered delays based on section and item index for a cascading effect.
+  </Tab>
+</Tabs>
+
+## Screen Configuration
+
+### Example Screen Setup
+
+Each drawer screen is configured with custom headers and icons:
+
+<CodeGroup>
+```javascript Screen Examples
+<Drawer.Screen
+  name="Mapa"
+  component={HomePage}
+  initialParams={{ user }}
+  options={{
+    drawerLabel: "Inicio",
+    drawerIcon: ({ color, size }) => <FontAwesomeIcon icon={faHome} size={size} color={color} />,
+    headerShown: false,
+  }}
+/>
+
+<Drawer.Screen
+  name="Perfil"
+  component={ProfileScreen}
+  initialParams={{ user }}
+  options={{
+    drawerLabel: "Perfil",
+    drawerIcon: ({ color, size }) => <FontAwesomeIcon icon={faUser} size={size} color={color} />,
+    headerShown: true,
+    drawerItemStyle: { display: "none" },  // Hidden from drawer
+    headerLeft: () => <DrawerHeaderButton />,
+    headerTitle: () => <HeaderWithIcon title="Mi Perfil" icon={faUser} />,
+  }}
+/>
+
+<Drawer.Screen
+  name="Directorio"
+  component={Directory}
+  options={{
+    drawerLabel: "Directorio",
+    drawerIcon: ({ color, size }) => <FontAwesomeIcon icon={faFolder} size={size} color={color} />,
+    headerLeft: () => <DrawerHeaderButton />,
+    headerTitle: () => <HeaderWithIcon title="Directorio Académico" icon={faFolder} />,
+  }}
+/>
+```
+</CodeGroup>
+
+### Custom Header Components
+
+<CodeGroup>
+```javascript Header Button
+const DrawerHeaderButton = () => {
+  const navigation = useNavigation();
+  return (
+    <TouchableOpacity
+      onPress={() => navigation.openDrawer()}
+      style={styles.menuIcon}
+      activeOpacity={0.7}
+    >
+      <View style={styles.menuIconContainer}>
+        <FontAwesomeIcon icon={faBars} size={22} color="#FFFFFF" />
+      </View>
+    </TouchableOpacity>
+  );
+};
+
+const HeaderWithIcon = ({ title, icon }) => (
+  <View style={styles.header}>
+    <View style={styles.headerIconContainer}>
+      <FontAwesomeIcon icon={icon} size={22} color="#FFFFFF" />
+    </View>
+    <Text style={styles.headerText}>{title}</Text>
+  </View>
+);
+```
+</CodeGroup>
+
+## Navigation Actions
+
+### Opening the Drawer
+
+```javascript
+navigation.openDrawer();
+```
+
+### Navigating Between Screens
+
+<CodeGroup>
+```javascript Simple Navigation
+navigation.navigate('ScreenName');
+```
+
+```javascript With Parameters
+navigation.navigate('ScreenName', { 
+  param1: value1,
+  param2: value2 
+});
+```
+
+```javascript Reset Stack
+navigation.reset({
+  index: 0,
+  routes: [{ name: 'ScreenName', params: { user: userData } }],
+});
+```
+</CodeGroup>
+
+### Accessing Route Parameters
+
+```javascript
+import { useRoute } from "@react-navigation/native";
+
+const route = useRoute();
+const { user, otherParam } = route.params || {};
+```
+
+## Bottom Actions Section
+
+The drawer includes action buttons at the bottom:
+
+<CodeGroup>
+```javascript Bottom Actions
+<Animated.View
+  entering={SlideInRight.delay(800)}
+  style={styles.bottomActionsContainer}
+>
+  {/* Help Button */}
+  <TouchableOpacity
+    style={styles.actionButton}
+    onPress={handleHelp}
+    activeOpacity={0.7}
+  >
+    <View style={styles.actionIconContainer}>
+      <FontAwesomeIcon icon={faQuestionCircle} size={18} color="#0b34b0" />
+    </View>
+    <Text style={styles.actionButtonText}>Ayuda y Soporte</Text>
+  </TouchableOpacity>
+
+  {/* Logout Button */}
+  <TouchableOpacity
+    style={[styles.actionButton, styles.logoutButton]}
+    onPress={handleLogout}
+    activeOpacity={0.7}
+  >
+    <View style={[styles.actionIconContainer, styles.logoutIconContainer]}>
+      <FontAwesomeIcon icon={faSignOutAlt} size={18} color="#ef4444" />
+    </View>
+    <Text style={[styles.actionButtonText, styles.logoutButtonText]}>Cerrar Sesión</Text>
+  </TouchableOpacity>
+</Animated.View>
+```
+</CodeGroup>
+
+## Modal Integration
+
+The drawer includes a help modal:
+
+<CodeGroup>
+```javascript Help Modal
+<Modal
+  animationType="fade"
+  transparent={true}
+  visible={isHelpModalVisible}
+  onRequestClose={closeHelpModal}
+  statusBarTranslucent
+>
+  <View style={styles.modalOverlay}>
+    <Animated.View
+      entering={FadeInDown.duration(300)}
+      style={styles.modalContent}
+    >
+      <LinearGradient
+        colors={["#0b34b0", "#1e40af"]}
+        style={styles.modalHeader}
+      >
+        <View style={styles.modalHeaderContent}>
+          <FontAwesomeIcon icon={faQuestionCircle} size={28} color="#FFFFFF" />
+          <Text style={styles.modalTitle}>¿Necesitas Ayuda?</Text>
+        </View>
+        <TouchableOpacity onPress={closeHelpModal} style={styles.closeButton}>
+          <FontAwesomeIcon icon={faTimes} size={20} color="#FFFFFF" />
+        </TouchableOpacity>
+      </LinearGradient>
+
+      <View style={styles.modalBody}>
+        <Text style={styles.modalDescription}>
+          Nuestro equipo de soporte está aquí para ayudarte.
+        </Text>
+        <TouchableOpacity style={styles.contactButton} onPress={sendEmail}>
+          <FontAwesomeIcon icon={faEnvelope} size={20} color="#FFFFFF" />
+          <Text style={styles.contactButtonText}>Enviar Email</Text>
+        </TouchableOpacity>
+      </View>
+    </Animated.View>
+  </View>
+</Modal>
+```
+</CodeGroup>
+
+## Animations
+
+CUCEIUbicate uses `react-native-reanimated` for smooth animations:
+
+<CardGroup cols={2}>
+  <Card title="FadeInDown" icon="arrow-down">
+    Used for header entrance animation
+  </Card>
+  <Card title="FadeInUp" icon="arrow-up">
+    Applied to section containers
+  </Card>
+  <Card title="FadeInLeft" icon="arrow-left">
+    Individual drawer items entrance
+  </Card>
+  <Card title="SlideInRight" icon="arrow-right">
+    Bottom actions appearance
+  </Card>
+</CardGroup>
+
+## Styling Best Practices
+
+### Platform-Specific Styles
+
+```javascript
+const styles = StyleSheet.create({
+  drawerHeader: {
+    height: Platform.OS === 'android' ? 200 : 220,
+    // Android typically needs different heights
+  },
+  drawerStyle: {
+    width: Platform.OS === 'android' ? width * 0.85 : 320,
+    // Android uses percentage, iOS uses fixed width
+  },
+  itemLabel: {
+    fontSize: Platform.OS === 'android' ? 15 : 16,
+    // Adjust font sizes per platform
+  },
+});
+```
+
+### Responsive Design
+
+```javascript
+const { width, height } = Dimensions.get("window");
+const isTablet = width >= 768;
+
+const styles = StyleSheet.create({
+  logo: {
+    width: isTablet ? 140 : 120,
+    height: isTablet ? 90 : 80,
+  },
+  drawerItemTouchable: {
+    paddingVertical: Platform.OS === 'android' ? 14 : 16,
+    minHeight: Platform.OS === 'android' ? 56 : 60,
+  },
+});
+```
+
+## Related Files
+
+- **Main Navigation**: `App.js:108` (NavigationContainer), `App.js:114` (Stack.Navigator)
+- **Drawer Setup**: `Src/Screens/Home/Components/SearchBarsComponent/MyDrawer.js:358` (MyDrawer component)
+- **Custom Drawer**: `Src/Screens/Home/Components/SearchBarsComponent/MyDrawer.js:74` (CustomDrawerContent)
+- **Drawer Sections**: `Src/Screens/Home/Components/SearchBarsComponent/MyDrawer.js:80` (drawerSections)

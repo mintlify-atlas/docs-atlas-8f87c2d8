@@ -1,0 +1,489 @@
+---
+title: 'Contributing Guidelines'
+description: 'Guidelines for contributing to CUCEIUbicate'
+icon: 'code-pull-request'
+---
+
+Thank you for your interest in contributing to CUCEIUbicate! This guide will help you understand our development workflow and best practices.
+
+## Getting Started
+
+Before contributing, make sure you have:
+
+<Steps>
+  <Step title="Set Up Development Environment">
+    Follow the [development setup guide](/development/setup) to configure your local environment.
+  </Step>
+
+  <Step title="Understand the Codebase">
+    Familiarize yourself with:
+    - React Native and Expo framework
+    - React Navigation for routing
+    - Supabase for backend services
+    - TypeScript syntax and patterns
+  </Step>
+
+  <Step title="Check Existing Issues">
+    Look for existing issues or create a new one to discuss your proposed changes.
+  </Step>
+</Steps>
+
+## Development Workflow
+
+<Steps>
+  <Step title="Fork and Clone">
+    Fork the repository and clone your fork:
+    ```bash
+    git clone https://github.com/your-username/CUCEIUbicate.git
+    cd CUCEIUbicate
+    ```
+  </Step>
+
+  <Step title="Create a Branch">
+    Create a feature branch with a descriptive name:
+    ```bash
+    git checkout -b feature/your-feature-name
+    ```
+    
+    Branch naming conventions:
+    - `feature/` - New features
+    - `fix/` - Bug fixes
+    - `refactor/` - Code refactoring
+    - `docs/` - Documentation updates
+    - `chore/` - Maintenance tasks
+  </Step>
+
+  <Step title="Make Your Changes">
+    Implement your changes following the coding standards outlined below.
+  </Step>
+
+  <Step title="Test Thoroughly">
+    Test your changes on multiple platforms:
+    ```bash
+    npm start
+    # Test on Android
+    npm run android
+    # Test on iOS (macOS only)
+    npm run ios
+    ```
+  </Step>
+
+  <Step title="Commit Your Changes">
+    Write clear, descriptive commit messages:
+    ```bash
+    git add .
+    git commit -m "feat: add building location search feature"
+    ```
+    
+    Follow [Conventional Commits](https://www.conventionalcommits.org/) format:
+    - `feat:` - New feature
+    - `fix:` - Bug fix
+    - `docs:` - Documentation changes
+    - `style:` - Code style changes (formatting)
+    - `refactor:` - Code refactoring
+    - `test:` - Adding tests
+    - `chore:` - Maintenance tasks
+  </Step>
+
+  <Step title="Push and Create Pull Request">
+    Push your branch and create a pull request:
+    ```bash
+    git push origin feature/your-feature-name
+    ```
+    
+    Then open a pull request on GitHub with:
+    - Clear title describing the change
+    - Detailed description of what and why
+    - Screenshots or videos for UI changes
+    - Reference to related issues
+  </Step>
+</Steps>
+
+## Coding Standards
+
+### TypeScript Best Practices
+
+<Tabs>
+  <Tab title="Type Safety">
+    Always use TypeScript types and interfaces:
+    
+    ```typescript
+    // Good
+    interface Building {
+      id: string;
+      name: string;
+      coordinates: {
+        latitude: number;
+        longitude: number;
+      };
+    }
+    
+    function findBuilding(id: string): Building | null {
+      // Implementation
+    }
+    
+    // Avoid
+    function findBuilding(id: any): any {
+      // Implementation
+    }
+    ```
+  </Tab>
+
+  <Tab title="Component Typing">
+    Properly type React components:
+    
+    ```typescript
+    import { FC } from 'react';
+    
+    interface MapViewProps {
+      buildings: Building[];
+      onBuildingSelect: (building: Building) => void;
+      initialRegion?: Region;
+    }
+    
+    const MapView: FC<MapViewProps> = ({ 
+      buildings, 
+      onBuildingSelect,
+      initialRegion 
+    }) => {
+      // Component implementation
+    };
+    ```
+  </Tab>
+
+  <Tab title="Async Operations">
+    Properly handle async operations:
+    
+    ```typescript
+    // Good
+    const fetchBuildings = async (): Promise<Building[]> => {
+      try {
+        const { data, error } = await supabase
+          .from('buildings')
+          .select('*');
+        
+        if (error) throw error;
+        return data || [];
+      } catch (error) {
+        console.error('Error fetching buildings:', error);
+        throw error;
+      }
+    };
+    ```
+  </Tab>
+</Tabs>
+
+### React Native Best Practices
+
+<AccordionGroup>
+  <Accordion title="Component Structure">
+    Organize components logically:
+    
+    ```
+    components/
+    ├── common/           # Reusable components
+    │   ├── Button.tsx
+    │   └── Card.tsx
+    ├── navigation/       # Navigation components
+    │   └── CustomDrawer.tsx
+    ├── map/             # Map-related components
+    │   ├── MapView.tsx
+    │   └── BuildingMarker.tsx
+    └── screens/         # Screen components
+        ├── HomeScreen.tsx
+        └── MapScreen.tsx
+    ```
+  </Accordion>
+
+  <Accordion title="Performance Optimization">
+    Follow React Native performance best practices:
+    
+    - Use `React.memo()` for expensive components
+    - Implement `useMemo()` and `useCallback()` appropriately
+    - Optimize FlatList with `keyExtractor` and `getItemLayout`
+    - Use `react-native-reanimated` for smooth animations
+    - Avoid inline functions in render methods
+    
+    ```typescript
+    // Good
+    const BuildingList = React.memo(({ buildings }) => {
+      const renderItem = useCallback(({ item }) => (
+        <BuildingCard building={item} />
+      ), []);
+      
+      return (
+        <FlatList
+          data={buildings}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+        />
+      );
+    });
+    ```
+  </Accordion>
+
+  <Accordion title="State Management">
+    Use appropriate state management:
+    
+    - Local state with `useState` for component-specific data
+    - Context API for app-wide state
+    - AsyncStorage for persistent data
+    - Secure Store for sensitive information
+    
+    ```typescript
+    // Context for app-wide state
+    const AuthContext = createContext<AuthContextType | null>(null);
+    
+    // Local state for component data
+    const [selectedBuilding, setSelectedBuilding] = useState<Building | null>(null);
+    ```
+  </Accordion>
+
+  <Accordion title="Navigation">
+    Follow React Navigation patterns:
+    
+    - Type your navigation props
+    - Use appropriate navigators (Stack, Tab, Drawer)
+    - Implement deep linking when needed
+    
+    ```typescript
+    type RootStackParamList = {
+      Home: undefined;
+      BuildingDetail: { buildingId: string };
+      Map: { initialCoordinates?: Coordinates };
+    };
+    
+    type BuildingDetailScreenProps = NativeStackScreenProps<
+      RootStackParamList,
+      'BuildingDetail'
+    >;
+    ```
+  </Accordion>
+</AccordionGroup>
+
+### Code Style
+
+<CardGroup cols={2}>
+  <Card title="Formatting" icon="paintbrush">
+    - Use 2 spaces for indentation
+    - Single quotes for strings
+    - Semicolons at end of statements
+    - Trailing commas in objects/arrays
+  </Card>
+  
+  <Card title="Naming" icon="tag">
+    - PascalCase for components
+    - camelCase for variables/functions
+    - UPPER_SNAKE_CASE for constants
+    - Descriptive, meaningful names
+  </Card>
+  
+  <Card title="Comments" icon="comment">
+    - JSDoc for public functions
+    - Inline comments for complex logic
+    - TODO comments with your initials
+    - Remove commented-out code
+  </Card>
+  
+  <Card title="Imports" icon="file-import">
+    - Group imports logically
+    - React imports first
+    - Third-party libraries
+    - Local imports last
+    - Absolute imports when possible
+  </Card>
+</CardGroup>
+
+## Testing Guidelines
+
+### Manual Testing Checklist
+
+Before submitting a pull request, test:
+
+<Tabs>
+  <Tab title="Functional Testing">
+    - Feature works as intended
+    - Edge cases are handled
+    - Error states display properly
+    - Loading states work correctly
+    - Navigation flows are smooth
+  </Tab>
+
+  <Tab title="Platform Testing">
+    Test on both platforms:
+    - Android (physical device or emulator)
+    - iOS (physical device or simulator)
+    - Different screen sizes
+    - Different OS versions
+  </Tab>
+
+  <Tab title="Performance Testing">
+    - App launches quickly
+    - No memory leaks
+    - Smooth animations
+    - Responsive UI interactions
+    - Network requests are efficient
+  </Tab>
+
+  <Tab title="Accessibility">
+    - Proper labels for screen readers
+    - Adequate touch target sizes
+    - Sufficient color contrast
+    - Keyboard navigation support
+  </Tab>
+</Tabs>
+
+## Key Dependencies
+
+Understand the main dependencies used in CUCEIUbicate:
+
+### Core Dependencies
+
+| Package | Version | Purpose |
+|---------|---------|----------|
+| React Native | 0.76.9 | Mobile framework |
+| Expo | ^52.0.48 | Development platform |
+| TypeScript | ^5.6.2 | Type safety |
+| React Navigation | ^6.x | Navigation |
+| Supabase | ^2.39.8 | Backend services |
+| Google Generative AI | ^0.21.0 | AI features |
+
+### UI Libraries
+
+- **React Native Paper** - Material Design components
+- **React Native Vector Icons** - Icon library
+- **FontAwesome** - Additional icons
+- **React Native Reanimated** - Smooth animations
+- **Lottie** - Animation files
+
+### Utilities
+
+- **AsyncStorage** - Local storage
+- **Secure Store** - Secure storage
+- **React Native Gesture Handler** - Touch gestures
+- **React Native SVG** - SVG support
+
+## Pull Request Guidelines
+
+### PR Checklist
+
+Before submitting, ensure:
+
+- [ ] Code follows the project style guidelines
+- [ ] Changes are tested on Android and iOS
+- [ ] No console warnings or errors
+- [ ] TypeScript compiles without errors
+- [ ] Comments are added for complex logic
+- [ ] PR description is clear and complete
+- [ ] Screenshots/videos included for UI changes
+- [ ] Related issues are referenced
+
+### PR Review Process
+
+<Steps>
+  <Step title="Automated Checks">
+    CI/CD will run:
+    - TypeScript compilation
+    - Linting checks
+    - Build verification
+  </Step>
+
+  <Step title="Code Review">
+    Maintainers will review:
+    - Code quality and style
+    - Functionality and logic
+    - Performance implications
+    - Security considerations
+  </Step>
+
+  <Step title="Testing">
+    Reviewers may test:
+    - Feature functionality
+    - Edge cases
+    - Cross-platform behavior
+  </Step>
+
+  <Step title="Approval and Merge">
+    Once approved:
+    - PR will be merged
+    - Changes deployed in next release
+    - Issue will be closed
+  </Step>
+</Steps>
+
+<Note>
+  Be patient and responsive during the review process. Address feedback promptly and professionally.
+</Note>
+
+## Common Contribution Areas
+
+<CardGroup cols={2}>
+  <Card title="Features" icon="sparkles">
+    - New navigation features
+    - AI assistant improvements
+    - Map enhancements
+    - UI/UX improvements
+  </Card>
+  
+  <Card title="Bug Fixes" icon="bug">
+    - Navigation issues
+    - UI glitches
+    - Performance problems
+    - Crash fixes
+  </Card>
+  
+  <Card title="Documentation" icon="book">
+    - Code documentation
+    - User guides
+    - API documentation
+    - Tutorial content
+  </Card>
+  
+  <Card title="Localization" icon="language">
+    - Spanish translations
+    - UI text improvements
+    - RTL support
+    - Accessibility labels
+  </Card>
+</CardGroup>
+
+## Resources
+
+### Documentation
+
+- [React Native Documentation](https://reactnative.dev/docs/getting-started)
+- [Expo Documentation](https://docs.expo.dev/)
+- [React Navigation](https://reactnavigation.org/docs/getting-started)
+- [TypeScript Handbook](https://www.typescriptlang.org/docs/)
+- [Supabase Documentation](https://supabase.com/docs)
+
+### Community
+
+- Join our discussions on GitHub
+- Ask questions in issues
+- Share your ideas and feedback
+- Help other contributors
+
+## Code of Conduct
+
+<Warning>
+  All contributors must adhere to our Code of Conduct:
+  - Be respectful and inclusive
+  - Provide constructive feedback
+  - Accept constructive criticism
+  - Focus on what's best for the community
+  - Show empathy towards others
+</Warning>
+
+## Questions?
+
+If you have questions about contributing:
+
+1. Check existing documentation and issues
+2. Ask in GitHub Discussions
+3. Reach out to maintainers
+4. Join our community channels
+
+---
+
+Thank you for contributing to CUCEIUbicate and helping improve campus navigation for CUCEI students!
