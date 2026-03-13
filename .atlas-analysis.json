@@ -1,0 +1,132 @@
+{
+  "projectType": "saas",
+  "projectName": "CUCEIUbicate",
+  "projectDescription": "A mobile campus navigation and student services app for CUCEI university students",
+  "theme": "almond",
+  "primaryColor": "#1e40af",
+  "lightColor": "#3b82f6",
+  "darkColor": "#1e3a8a",
+  "navigation": {
+    "tabs": [
+      {
+        "tab": "Overview",
+        "groups": [
+          {
+            "group": "Getting Started",
+            "pages": [
+              "introduction",
+              "features",
+              "installation"
+            ]
+          },
+          {
+            "group": "User Guide",
+            "pages": [
+              "guide/account-setup",
+              "guide/profile-management",
+              "guide/campus-navigation",
+              "guide/route-finding",
+              "guide/chatbot-assistant"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Features",
+        "groups": [
+          {
+            "group": "Core Features",
+            "pages": [
+              "features/interactive-map",
+              "features/navigation-system",
+              "features/ai-chatbot",
+              "features/profile-system"
+            ]
+          },
+          {
+            "group": "Student Services",
+            "pages": [
+              "features/scholarships",
+              "features/academic-services",
+              "features/medical-services",
+              "features/social-services"
+            ]
+          },
+          {
+            "group": "Additional Features",
+            "pages": [
+              "features/radio-cucei",
+              "features/community",
+              "features/facial-recognition"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "Development",
+        "groups": [
+          {
+            "group": "Architecture",
+            "pages": [
+              "development/architecture",
+              "development/project-structure",
+              "development/dependencies"
+            ]
+          },
+          {
+            "group": "Components",
+            "pages": [
+              "development/authentication",
+              "development/navigation-components",
+              "development/api-integration",
+              "development/state-management"
+            ]
+          },
+          {
+            "group": "Guides",
+            "pages": [
+              "development/setup",
+              "development/building",
+              "development/contributing"
+            ]
+          }
+        ]
+      },
+      {
+        "tab": "API Reference",
+        "groups": [
+          {
+            "group": "Backend API",
+            "pages": [
+              "api/overview",
+              "api/authentication",
+              "api/user-management",
+              "api/campus-data"
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "keyFeatures": [
+    "Interactive campus map with route visualization",
+    "AI-powered chatbot assistant for student queries",
+    "User authentication and profile management",
+    "Scholarship and academic services information",
+    "Real-time campus navigation with search functionality",
+    "Student services integration (medical, social, CID)",
+    "Multi-language support and customizable profiles",
+    "Offline map caching and route storage"
+  ],
+  "publicApiSurface": [
+    "POST /api/login - User authentication",
+    "POST /api/register - User registration",
+    "GET /api/user/profile - Get user profile",
+    "PUT /api/user/profile - Update user profile",
+    "GET /api/campus/locations - Get campus locations",
+    "GET /api/routes - Get navigation routes",
+    "POST /api/chatbot/query - Send chatbot message",
+    "GET /api/scholarships - Get scholarship information",
+    "GET /api/services - Get campus services data"
+  ]
+}
